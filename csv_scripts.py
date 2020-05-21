@@ -1,6 +1,43 @@
 import os
+import sys
 import csv
 import re
+from fuzzywuzzy import process
+
+csv.field_size_limit(int(sys.maxsize/100000000000))
+
+def match_commodities():
+    rows = []
+    with open('stock_sample_with_segments.csv') as f:
+        r = csv.DictReader(f)
+        for row in r:
+            d = row["Description"]
+            print("Handling " + d)
+            print(row["Segments"])
+            seg_string = row["Segments"].replace('"', "")
+            print(seg_string)
+            segs = seg_string.split(";")
+            print("Fetching commodies for following segments:")
+            print(segs)
+            commodities = {}
+            for s in segs:
+                with open("csvs/" + s + ".csv") as f2:
+                        r2 = csv.DictReader(f2)
+                        for row2 in r2:
+                            if row2["Commodity Name"] in commodities:
+                                print("Duplicate commodity: " + row2["Commodity Name"])
+                            commodities[row2["Commodity Name"]] = row2["Commodity"]
+            print("Looking for matches..")
+            results = process.extract(d, list(commodities), limit=3)
+            r_string = ""
+            for res in results:
+                print(res)
+                r_string += res[0] + ";"
+            row.update({"Commodities": r_string})
+            rows.append(row)
+    output_file = "stock_sample_with_segments_and_commodities.csv"
+    print("Saving to " + output_file)
+    save_file(output_file, rows, mode="w")
 
 def split_file():
     with open('unspsc_codes_3.csv') as f:
@@ -126,6 +163,7 @@ def save_brands(brands):
 
 
 if __name__=="__main__":
-    generate_preprocessed_stocks_csv()
+    match_commodities()
+    #generate_preprocessed_stocks_csv()
     #brands = count_brands()
     #save_brands(brands)
