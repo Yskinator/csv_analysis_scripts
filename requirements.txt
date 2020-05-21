@@ -1,0 +1,3 @@
+wheel
+fuzzywuzzy[speedup]
+spacy
