@@ -161,12 +161,36 @@ def save_brands(brands):
         rows.append(row)
     save_file("brand_counts.csv", rows, mode="w", fieldnames = ["Brand", "Count"])
 
+def map_preprocessed_to_original():
+    stocks = {}
+    with open("combined_stock_master_withbrands.csv") as f1, open("stock_sample_with_segments_and_commodities_and_codes.csv") as f2:
+        r1 = csv.DictReader(f1)
+        print("Generating dictionary from the original data..")
+        for row in r1:
+            print("Row id: " + row["id"])
+            stocks[int(row["id"])] = row
+        r2 = csv.DictReader(f2)
+        for row in r2:
+            ids = filter(None, row["id"].split(";"))
+            for i in ids:
+                print("Updating row id: " + i)
+                stocks[int(i)].update({"Commodity Codes": row["Commodity Codes"], "Commodities": row["Commodities"]})
+    rows = []
+    ids = list(stocks.keys())
+    ids.sort()
+    for i in ids:
+        rows.append(stocks[i])
+    fieldnames = ["id", "language", "text", "Brand", "Commodities", "Commodity Codes"]
+    print("Saving to combined_stock_master_withbrands_and_commodity_codes.csv..")
+    save_file("combined_stock_master_withbrands_and_commodity_codes.csv", rows, fieldnames = fieldnames, mode = "w")
+    print("Done.")
 
 
 
 
 if __name__=="__main__":
-    match_commodities()
+    map_preprocessed_to_original()
+    #match_commodities()
     #generate_preprocessed_stocks_csv()
     #brands = count_brands()
     #save_brands(brands)
