@@ -216,6 +216,11 @@ def map_preprocessed_to_original():
     save_file("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
     print("Done.")
 
+def remove_temp_files():
+    tmp_files = ["brand_counts.csv", "brands_to_segments.csv", "preprocessed_stocks_with_brands.csv", "segment_strings.csv", "stock_with_commodities.csv", "stock_with_segments.csv"]
+    for f in tmp_files:
+        os.remove(f)
+
 def add_commodities_to_stocks():
     generate_segment_files()
     generate_segment_string_csv()
@@ -225,6 +230,7 @@ def add_commodities_to_stocks():
     embedding_match.embedding_match()
     match_commodities()
     map_preprocessed_to_original()
+    remove_temp_files()
     
 
 
