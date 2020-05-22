@@ -19,7 +19,7 @@ def match_commodities():
             for future in futures:
                 updated_row = future.result()
                 rows.append(updated_row)
-    output_file = "stock_sample_with_segments_and_commodities_and_codes.csv"
+    output_file = "stock_sample_with_segments_and_commodities_and_codes_better_list_compare_singular.csv"
     print("Saving to " + output_file)
     save_file(output_file, rows, mode="w")
 
@@ -36,15 +36,30 @@ def match_commodities_for_row(row):
                 if row2["Commodity Name"] in commodities:
                     print("Duplicate commodity: " + row2["Commodity Name"])
                 commodities[row2["Commodity Name"]] = row2["Commodity"]
-    results = process.extract(d, list(commodities), limit=3)
+    #results = process.extract(d, list(commodities), limit=3)
+    results = most_matching_words(d, list(commodities), limit=3)
     r_string = ""
     commodity_codes = ""
     for res in results:
-        r_string += res[0] + ";"
-        commodity_codes += commodities[res[0]] + ";"
+        #r_string += res[0] + ";"
+        r_string += res + ";"
+        #commodity_codes += commodities[res[0]] + ";"
+        commodity_codes += commodities[res] + ";"
     row.update({"Commodities": r_string, "Commodity Codes": commodity_codes})
     print("Row " + row["id"] + ", commodities found.")
     return row
+
+def most_matching_words(description, commodities, limit):
+    jaccard_distance = {}
+    for c in commodities:
+        c_list = re.findall(r"[\w']+", c) 
+        c_list = [w.lower().rstrip("s") for w in c_list]
+        d_list = re.findall(r"[\w']+", description) 
+        d_list = [w.lower().rstrip("s") for w in d_list]
+        intersection = len(set(c_list).intersection(set(d_list)))
+        jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
+    commodities_sorted = sorted(list(jaccard_distance.keys()), key = lambda commodity: -jaccard_distance[commodity])
+    return commodities_sorted[:limit]
 
 
 def split_file():
@@ -194,8 +209,12 @@ def map_preprocessed_to_original():
 
 
 if __name__=="__main__":
-    map_preprocessed_to_original()
-    #match_commodities()
+    #description = "MOTOR WIPER"
+    #commodities = ["motor oil", "wiper motor", "my foot"]
+    #limit = 2
+    #print(most_matching_words(description, commodities, limit))
+    #map_preprocessed_to_original()
+    match_commodities()
     #generate_preprocessed_stocks_csv()
     #brands = count_brands()
     #save_brands(brands)
