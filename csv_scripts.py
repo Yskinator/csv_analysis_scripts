@@ -39,15 +39,20 @@ def match_commodities_for_row(row):
                     print("Duplicate commodity: " + row2["Commodity Name"])
                 commodities[row2["Commodity Name"]] = row2["Commodity"]
     #results = process.extract(d, list(commodities), limit=3)
-    results = most_matching_words(d, list(commodities), limit=3)
+    results = most_matching_words(d, list(commodities), limit=1)
     r_string = ""
     commodity_codes = ""
-    for res in results:
-        #r_string += res[0] + ";"
-        r_string += res + ";"
-        #commodity_codes += commodities[res[0]] + ";"
-        commodity_codes += commodities[res] + ";"
-    row.update({"Commodities": r_string, "Commodity Codes": commodity_codes})
+    if len(results) == 1:
+        res = results[0]
+        r_string = res
+        commodity_codes = commodities[res]
+    else:
+        for res in results:
+            #r_string += res[0] + ";"
+            r_string += res + ";"
+            #commodity_codes += commodities[res[0]] + ";"
+            commodity_codes += commodities[res] + ";"
+    row.update({"Commodity": r_string, "Commodity Code": commodity_codes})
     print("Row " + row["id"] + ", commodities found.")
     return row
 
@@ -205,13 +210,13 @@ def map_preprocessed_to_original():
             ids = filter(None, row["id"].split(";"))
             for i in ids:
                 print("Updating row id: " + i)
-                stocks[int(i)].update({"Commodity Codes": row["Commodity Codes"], "Commodities": row["Commodities"]})
+                stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"]})
     rows = []
     ids = list(stocks.keys())
     ids.sort()
     for i in ids:
         rows.append(stocks[i])
-    fieldnames = ["", "id", "language", "text", "Brand", "Commodities", "Commodity Codes"]
+    fieldnames = ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code"]
     print("Saving to combined_stock_master_withbrands_and_commodities.csv..")
     save_file("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
     print("Done.")
