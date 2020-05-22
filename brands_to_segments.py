@@ -1,5 +1,6 @@
 """Connect brands to their most likely product segments."""
 
+import os
 import csv
 import spacy
 from embedding_match import extract, load_segments
@@ -42,7 +43,9 @@ def match_brands_segments(nlp, brands, brandcounts, commodities, segments):
             print(i, (brand, segment))
     return brands_to_segments
 
-def main():
+def brands_to_segments():
+    if os.path.isfile("brands_to_segments.csv"):
+        return
     print("Loading brand counts...")
     with open("brand_counts.csv", encoding="UTF-8") as f:
         r = csv.DictReader(f)
@@ -64,4 +67,4 @@ def main():
     print("Finished.")
 
 if __name__ == "__main__":
-    main()
+    brands_to_segments()

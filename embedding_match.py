@@ -1,4 +1,5 @@
 import sys
+import os
 import csv
 import spacy
 
@@ -53,7 +54,7 @@ def add_segments(filepath, nlp, commodities, segments, brand_seg=None):
             if i%250 == 0:
                 print(descr+" -> "+str(result_segments))
             new_rows.append(new_row+[";".join([r[0] for r in result_segments])])
-        new_rows[0][2] = "Segments" # Fix the third column of header prior to writing to file
+        new_rows[0][3] = "Segments" # Fix the fourth column of header prior to writing to file
     return new_rows
 
 def csv_write(filepath, rows):
@@ -62,7 +63,9 @@ def csv_write(filepath, rows):
         for row in rows:
             writer.writerow(row)
 
-def main():
+def embedding_match():
+    if os.path.isfile("stock_with_segments.csv"):
+        return
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
@@ -73,8 +76,8 @@ def main():
     print("Extracting...")
     new_rows = add_segments('preprocessed_stocks_with_brands.csv', nlp, commodities, segments, brand_seg)
     print("Writing to file...")
-    csv_write('stock_sample_with_segments.csv', new_rows)
+    csv_write('stock_with_segments.csv', new_rows)
     print("Finished.")
 
 if __name__ == "__main__":
-    main()
+    embedding_match()
