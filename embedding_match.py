@@ -44,7 +44,7 @@ def add_segments(filepath, nlp, commodities, segments, brand_seg=None):
             new_row = row.copy()
             descr = row[0]
             brand = row[2]
-            results = extract(nlp(descr), commodities, 15)
+            results = extract(nlp(descr), commodities, 25)
             result_segments = [(segments[i], prob) for i, prob in results]
             if brand_seg and brand in brand_seg.keys():
                 segment = brand_seg[brand]
