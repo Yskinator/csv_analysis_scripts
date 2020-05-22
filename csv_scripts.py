@@ -31,12 +31,14 @@ def match_commodities():
             print("Looking for matches..")
             results = process.extract(d, list(commodities), limit=3)
             r_string = ""
+            commodity_codes = ""
             for res in results:
                 print(res)
                 r_string += res[0] + ";"
-            row.update({"Commodities": r_string})
+                commodity_codes += commodities[res[0]] + ";"
+            row.update({"Commodities": r_string, "Commodity Codes": commodity_codes})
             rows.append(row)
-    output_file = "stock_sample_with_segments_and_commodities.csv"
+    output_file = "stock_sample_with_segments_and_commodities_and_codes.csv"
     print("Saving to " + output_file)
     save_file(output_file, rows, mode="w")
 
