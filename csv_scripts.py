@@ -267,9 +267,7 @@ def add_commodities_to_stocks():
 
     brands_segs = brands_to_segments.brands_to_segments(brand_counts, preprocessed)
 
-    segment_strings = load_segments()
-
-    stock_with_segments = embedding_match.embedding_match(segment_strings, brands_segs, preprocessed)
+    stock_with_segments = embedding_match.embedding_match("segment_strings.csv", brands_segs, preprocessed)
 
     stock_with_commodities = match_commodities(stock_with_segments)
 
