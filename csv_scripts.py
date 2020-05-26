@@ -67,12 +67,12 @@ def get_brands():
 def most_matching_words(description, commodities, limit, brands):
     jaccard_distance = {}
     for c in commodities:
-        c_list = re.findall(r"[\w']+", c)
-        c_list = [w.lower().rstrip("s") for w in c_list]
+        c_list = re.findall(r"[\w']+", c) 
+        c_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in c_list]
         #Remove the brand names from the description
         c_list = list(set(c_list) - set(brands))
         d_list = re.findall(r"[\w']+", description) 
-        d_list = [w.lower().rstrip("s") for w in d_list]
+        d_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in d_list]
         intersection = len(set(c_list).intersection(set(d_list)))
         jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
     commodities_sorted = sorted(list(jaccard_distance.keys()), key = lambda commodity: -jaccard_distance[commodity])
