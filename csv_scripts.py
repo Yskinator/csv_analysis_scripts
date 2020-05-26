@@ -12,17 +12,18 @@ csv.field_size_limit(int(sys.maxsize/100000000000))
 def match_commodities(stock_with_segments_file):
     rows = []
     with open(stock_with_segments_file) as f:
+    brands = get_brands()
         r = csv.DictReader(f)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for row in r:
-                futures.append(executor.submit(match_commodities_for_row, row))
+                futures.append(executor.submit(match_commodities_for_row, row, brands))
             for future in futures:
                 updated_row = future.result()
                 rows.append(updated_row)
     return rows
 
-def match_commodities_for_row(row):
+def match_commodities_for_row(row, brands = []):
     d = row["Description"]
     print("Row " + row["id"] + ", matching commodities.")
     seg_string = row["Segments"].replace('"', "")
@@ -36,7 +37,7 @@ def match_commodities_for_row(row):
                     print("Duplicate commodity: " + row2["Commodity Name"])
                 commodities[row2["Commodity Name"]] = row2["Commodity"]
     #results = process.extract(d, list(commodities), limit=3)
-    results = most_matching_words(d, list(commodities), limit=1)
+    results = most_matching_words(d, list(commodities), limit=1, brands = brands)
     r_string = ""
     commodity_codes = ""
     if len(results) == 1:
@@ -53,18 +54,29 @@ def match_commodities_for_row(row):
     print("Row " + row["id"] + ", commodities found.")
     return row
 
-def most_matching_words(description, commodities, limit):
+def get_brands():
+    brands = []
+    with open('brandlist.csv') as f:
+        r = csv.DictReader(f)
+        for row in r:
+            if row["Brand"] != "":
+                brands.append(row["Brand"].lower())
+    print(brands)
+    return brands
+
+def most_matching_words(description, commodities, limit, brands):
     jaccard_distance = {}
     for c in commodities:
         c_list = re.findall(r"[\w']+", c)
         c_list = [w.lower().rstrip("s") for w in c_list]
-        d_list = re.findall(r"[\w']+", description)
+        #Remove the brand names from the description
+        c_list = list(set(c_list) - set(brands))
+        d_list = re.findall(r"[\w']+", description) 
         d_list = [w.lower().rstrip("s") for w in d_list]
         intersection = len(set(c_list).intersection(set(d_list)))
         jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
     commodities_sorted = sorted(list(jaccard_distance.keys()), key = lambda commodity: -jaccard_distance[commodity])
     return commodities_sorted[:limit]
-
 
 def generate_segment_files():
     if os.path.isdir("segment_files/"):
