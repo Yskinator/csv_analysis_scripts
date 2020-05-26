@@ -57,7 +57,7 @@ def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
             if not segment in result_segments:
                 result_segments = [(segment, 1.0)]+result_segments
                 print("Row "+str(i)+": Added segment "+segment+" to "+descr+" based on brand.")
-        new_row["Segments"] = new_row["Segments"] + ";".join([r[0] for r in result_segments]
+        new_row["Segments"] = new_row["Segments"] + ";".join([r[0] for r in result_segments])
         new_rows.append(new_row)
     return new_rows
 
