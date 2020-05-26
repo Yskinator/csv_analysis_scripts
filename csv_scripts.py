@@ -182,20 +182,19 @@ def count_field(stock_master, field):
 def save_brands(rows, filename):
     file_util.save_csv(filename, rows, mode="w", fieldnames = ["Brand", "Count"])
 
-def map_preprocessed_to_original(combined_stock_file, stock_with_commodities_file):
+def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
     stocks = {}
-    with open(combined_stock_file) as f1, open(stock_with_commodities_file) as f2:
-        r1 = csv.DictReader(f1)
-        print("Generating dictionary from the original data..")
-        for row in r1:
-            print("Row id: " + row["id"])
-            stocks[int(row["id"])] = row
-        r2 = csv.DictReader(f2)
-        for row in r2:
-            ids = filter(None, row["id"].split(";"))
-            for i in ids:
-                print("Updating row id: " + i)
-                stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"]})
+    r1 = csv.DictReader(f1)
+    print("Generating dictionary from the original data..")
+    for row in combined_stocks:
+        print("Row id: " + row["id"])
+        stocks[int(row["id"])] = row
+    r2 = csv.DictReader(f2)
+    for row in stocks_with_commodities:
+        ids = filter(None, row["id"].split(";"))
+        for i in ids:
+            print("Updating row id: " + i)
+            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"]})
     rows = []
     ids = list(stocks.keys())
     ids.sort()
@@ -242,19 +241,12 @@ def add_commodities_to_stocks_with_files():
 
 def add_commodities_to_stocks(stock_master):
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
-
     brand_counts = count_field(stock_master, "Brand")
-
-    segment_strings = read_csv("segment_strings.csv")
-
-    brands_segs = brands_to_segments.brands_to_segments(segment_strings, brand_counts, preprocessed)
-
+    segment_strings = file_util.read_csv("segment_strings.csv")
+    brands_segs = brands_to_segments.brands_to_segments(segments_strings, brand_counts, preprocessed)
     stock_with_segments = embedding_match.embedding_match(segment_strings, brands_segs, preprocessed)
-
     stock_with_commodities = match_commodities(stock_with_segments)
-
-    rows, fieldnames = map_preprocessed_to_original("combined_stock_master_withbrands.csv", stock_with_commodities)
-
+    rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
 if __name__=="__main__":
