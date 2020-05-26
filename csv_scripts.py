@@ -12,7 +12,7 @@ csv.field_size_limit(int(sys.maxsize/100000000000))
 def match_commodities(stock_with_segments_file):
     rows = []
     with open(stock_with_segments_file) as f:
-    brands = get_brands()
+        brands = get_brands()
         r = csv.DictReader(f)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
@@ -67,11 +67,11 @@ def get_brands():
 def most_matching_words(description, commodities, limit, brands):
     jaccard_distance = {}
     for c in commodities:
-        c_list = re.findall(r"[\w']+", c) 
+        c_list = re.findall(r"[\w']+", c)
         c_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in c_list]
         #Remove the brand names from the description
         c_list = list(set(c_list) - set(brands))
-        d_list = re.findall(r"[\w']+", description) 
+        d_list = re.findall(r"[\w']+", description)
         d_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in d_list]
         intersection = len(set(c_list).intersection(set(d_list)))
         jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
@@ -150,27 +150,25 @@ def generate_segment_string_csv():
         row = {"Segment Name": s, "Segment String": segment_to_string(s)}
         save_file("segment_strings.csv", [row])
 
-def generate_preprocessed_stocks_csv(filename):
+def generate_preprocessed_stocks_csv(stock_master):
     descriptions = {}
     brands = {}
     forbidden_characters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-    with open(filename, "r") as f:
-        r = csv.DictReader(f)
-        for i, row in enumerate(r):
-            d_orig = row["text"]
-            d_splits = re.findall(r"[\w']+", d_orig)
-            d = ""
-            for s in d_splits:
-                if not any(c in s for c in forbidden_characters):
-                    d += s + " "
-            if d == "":
-                d = d_orig
-            if not d in descriptions:
-                descriptions[d] = [row["id"]]
-                brands[d] = [row["Brand"]]
-            else:
-                descriptions[d] = descriptions[d] + [row["id"]]
-                brands[d] = brands[d] + [row["Brand"]]
+    for i, row in enumerate(stock_master):
+        d_orig = row["text"]
+        d_splits = re.findall(r"[\w']+", d_orig)
+        d = ""
+        for s in d_splits:
+            if not any(c in s for c in forbidden_characters):
+                d += s + " "
+        if d == "":
+            d = d_orig
+        if not d in descriptions:
+            descriptions[d] = [row["id"]]
+            brands[d] = [row["Brand"]]
+        else:
+            descriptions[d] = descriptions[d] + [row["id"]]
+            brands[d] = brands[d] + [row["Brand"]]
     rows = []
     for d in descriptions:
         row_numbers = ""
@@ -183,23 +181,21 @@ def generate_preprocessed_stocks_csv(filename):
         rows.append(row)
     return rows
 
-def count_brands(filename):
+def count_field(stock_master, field):
     brands = {}
-    with open(filename, "r") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            b = row["Brand"]
-            if not b in brands:
-                brands[b] = 1
-            else:
-                brands[b] += 1
-    return brands
-
-def save_brands(brands, filename):
+    for row in stock_master:
+        b = row[field]
+        if not b in brands:
+            brands[b] = 1
+        else:
+            brands[b] += 1
     rows = []
     for b in brands:
         row = {"Brand": b, "Count": brands[b]}
         rows.append(row)
+    return rows
+
+def save_brands(rows, filename):
     save_file(filename, rows, mode="w", fieldnames = ["Brand", "Count"])
 
 def map_preprocessed_to_original(combined_stock_file, stock_with_commodities_file):
@@ -238,8 +234,8 @@ def add_commodities_to_stocks_with_files():
         save_file("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
 
     if not os.path.isfile("brand_counts.csv"):
-        brand_counts = count_brands("combined_stock_master_withbrands.csv")
-        save_brands(brands, "brand_counts.csv")
+        brand_counts = count_brands("combined_stock_master_withbrands.csv", "Brand")
+        save_brands(brand_counts, "brand_counts.csv")
 
     if not os.path.isfile("brands_to_segments.csv"):
         rows = brands_to_segments.brands_to_segments("brand_counts.csv", "preprocessed_stocks_with_brands.csv")
@@ -260,12 +256,12 @@ def add_commodities_to_stocks_with_files():
 
     remove_temp_files()
 
-def add_commodities_to_stocks():
-    preprocessed = generate_preprocessed_stocks_csv("combined_stock_master_withbrands.csv")
+def add_commodities_to_stocks(stock_master):
+    preprocessed = generate_preprocessed_stocks_csv(stock_master)
 
-    brand_counts = count_brands("combined_stock_master_withbrands.csv")
+    brand_counts = count_field(stock_master, "Brand")
 
-    brands_segs = brands_to_segments.brands_to_segments(brand_counts, preprocessed)
+    brands_segs = brands_to_segments.brands_to_segments("segment_strings.csv", brand_counts, preprocessed)
 
     stock_with_segments = embedding_match.embedding_match("segment_strings.csv", brands_segs, preprocessed)
 
@@ -276,7 +272,12 @@ def add_commodities_to_stocks():
     return (rows, fieldnames)
 
 if __name__=="__main__":
-    add_commodities_to_stocks()
+    stock_master = []
+    with open("combined_stock_master_withbrands.csv", "r") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            stock_master.append(row)
+    add_commodities_to_stocks(stock_master)
     #description = "MOTOR WIPER"
     #commodities = ["motor oil", "wiper motor", "my foot"]
     #limit = 2

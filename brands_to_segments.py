@@ -5,7 +5,7 @@ import csv
 import spacy
 from embedding_match import extract, load_segments
 
-def load_brands(filepath, brandcounts):
+def load_brands(filepath, brand_counts):
     """Load brands from csv specified by filepath, while ignoring brands with a brandcount < 20."""
     with open(filepath, encoding="UTF-8") as f:
         r = csv.DictReader(f)
@@ -16,7 +16,7 @@ def load_brands(filepath, brandcounts):
             for brand in set(brand_str.split(";")):
                 if not brand:
                     continue
-                if brand in brandcounts and int(brandcounts[brand]) < 20:
+                if brand in brand_counts and int(brand_counts[brand]) < 20:
                     # Ignore small brands, the results would not be reliable
                     continue
                 if brand in brands:
@@ -25,7 +25,25 @@ def load_brands(filepath, brandcounts):
                     brands[brand] = [descr]
     return brands
 
-def match_brands_segments(nlp, brands, brandcounts, commodities, segments):
+def process_brands(preprocessed, brand_counts):
+    """Process brands from list of dictionaries specified by preprocessed, while ignoring brands with a brandcount < 20."""
+    brands = {}
+    for row in preprocessed:
+        brand_str = row['Brands']
+        descr = row['Description']
+        for brand in set(brand_str.split(";")):
+            if not brand:
+                continue
+            if brand in brand_counts and int(brand_counts[brand]) < 20:
+                # Ignore small brands, the results would not be reliable
+                continue
+            if brand in brands:
+                brands[brand].append(descr)
+            else:
+                brands[brand] = [descr]
+    return brands
+
+def match_brands_segments(nlp, brands, brand_counts, commodities, segments):
     """Match brands to most probable segments."""
     brands_to_segments = [['Brand', 'Count', 'Segment Name']]
     for i, brand in enumerate(brands.keys()):
@@ -37,7 +55,7 @@ def match_brands_segments(nlp, brands, brandcounts, commodities, segments):
                 results = extract(descr_doc, commodities, 1)
                 possible_segments.append(segments[results[0][0]])
         segment = max(possible_segments, key=possible_segments.count)
-        count = brandcounts[brand] if brand in brandcounts else 0
+        count = brand_counts[brand] if brand in brand_counts else 0
         brands_to_segments.append([brand, count, '"'+segment+'"'])
         if i%100 == 0:
             print(i, (brand, segment))
@@ -49,22 +67,16 @@ def save_segments(brands_to_segments, filename):
         f.write("\n".join([",".join(r) for r in brands_to_segments]))
     print("Finished.")
 
-def brands_to_segments(brand_counts_file, preprocessed_stocks_file):
-    print("Loading brand counts...")
-    with open(brand_counts_file, encoding="UTF-8") as f:
-        r = csv.DictReader(f)
-        brandcounts = {}
-        for row in r:
-            brandcounts[row['Brand']] = row['Count']
+def brands_to_segments(segment_strings, brand_counts, preprocessed):
     print("Loading brands...")
-    brands = load_brands(, brandcounts)
+    brands = process_brands(preprocessed, brand_counts)
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
     print("Loading segments...")
-    commodities, segments = load_segments('segment_strings.csv', nlp)
+    commodities, segments = load_segments(segment_strings, nlp)
     print("Matching brands to segments...")
-    brands_to_segments = match_brands_segments(nlp, brands, brandcounts, commodities, segments)
+    brands_to_segments = match_brands_segments(nlp, brands, brand_counts, commodities, segments)
     return brands_to_segments
 
 if __name__ == "__main__":
