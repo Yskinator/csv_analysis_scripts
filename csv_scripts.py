@@ -5,6 +5,7 @@ import re
 import concurrent.futures
 import brands_to_segments
 import embedding_match
+import file_util
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -87,26 +88,12 @@ def generate_segment_files():
             curr_seg = row['Segment Name']
             if curr_seg != prev_seg and prev_seg != "":
                 print(curr_seg)
-                save_file("segment_files/" + prev_seg + ".csv", rows)
+                file_util.save_csv("segment_files/" + prev_seg + ".csv", rows, mode="a")
                 rows = []
             else:
                 rows.append(row)
             prev_seg = curr_seg
-        save_file("segment_files/" + prev_seg + ".csv", rows)
-
-def save_file(filename, rows, mode = "a", fieldnames = ""):
-    exists = False
-    if os.path.isfile(filename) and mode == "a":
-       exists = True
-    with open(filename, mode) as  fo:
-        if fieldnames == "":
-            w = csv.DictWriter(fo, fieldnames = list(rows[0].keys()))
-        else:
-            w = csv.DictWriter(fo, fieldnames = fieldnames)
-        if not exists:
-            w.writeheader()
-        for r in rows:
-            w.writerow(r)
+        file_util.save_csv("segment_files/" + prev_seg + ".csv", rows, mode="a")
 
 
 def segment_to_string(segment_name):
@@ -145,7 +132,7 @@ def generate_segment_string_csv():
     for s in segs:
         print(s)
         row = {"Segment Name": s, "Segment String": segment_to_string(s)}
-        save_file("segment_strings.csv", [row])
+        file_util.save_csv("segment_strings.csv", [row])
 
 def generate_preprocessed_stocks_csv(stock_master):
     descriptions = {}
@@ -193,7 +180,7 @@ def count_field(stock_master, field):
     return rows
 
 def save_brands(rows, filename):
-    save_file(filename, rows, mode="w", fieldnames = ["Brand", "Count"])
+    file_util.save_csv(filename, rows, mode="w", fieldnames = ["Brand", "Count"])
 
 def map_preprocessed_to_original(combined_stock_file, stock_with_commodities_file):
     stocks = {}
@@ -228,7 +215,7 @@ def add_commodities_to_stocks_with_files():
 
     if not os.path.isfile("preprocessed_stocks_with_brands.csv"):
         rows = generate_preprocessed_stocks_csv("combined_stock_master_withbrands.csv")
-        save_file("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
+        file_util.save_csv("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
 
     if not os.path.isfile("brand_counts.csv"):
         brand_counts = count_field("combined_stock_master_withbrands.csv", "Brand")
@@ -244,11 +231,11 @@ def add_commodities_to_stocks_with_files():
     rows = match_commodities('stock_with_segments.csv')
     output_file = "stock_with_commodities.csv"
     print("Saving to " + output_file)
-    save_file(output_file, rows, mode="w")
+    file_util.save_csv(output_file, rows, mode="w")
 
     rows, fieldnames = map_preprocessed_to_original("combined_stock_master_withbrands.csv", "stock_with_commodities.csv")
     print("Saving to combined_stock_master_withbrands_and_commodities.csv..")
-    save_file("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
+    file_util.save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
     print("Done.")
 
     remove_temp_files()
