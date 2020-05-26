@@ -58,26 +58,24 @@ def add_segments(filepath, nlp, commodities, segments, brand_seg=None):
     return new_rows
 
 def csv_write(filepath, rows):
+    print("Writing to file...")
     with open(filepath, encoding="UTF-8", mode="w+", newline='') as sample_file:
         writer = csv.writer(sample_file)
         for row in rows:
             writer.writerow(row)
+    print("Finished.")
 
-def embedding_match():
-    if os.path.isfile("stock_with_segments.csv"):
-        return
+def embedding_match(segment_strings_file, brands_segments_file, preprocessed_file):
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
     print("Reading commodity types...")
-    commodities, segments = load_segments('segment_strings.csv', nlp)
+    commodities, segments = load_segments(segment_strings_file, nlp)
     print("Loading brand segments...")
-    brand_seg = load_brand_segments("brands_to_segments.csv")
+    brand_seg = load_brand_segments(brands_segments_file)
     print("Extracting...")
-    new_rows = add_segments('preprocessed_stocks_with_brands.csv', nlp, commodities, segments, brand_seg)
-    print("Writing to file...")
-    csv_write('stock_with_segments.csv', new_rows)
-    print("Finished.")
+    new_rows = add_segments(preprocessed_file, nlp, commodities, segments, brand_seg)
+    return new_rows
 
 if __name__ == "__main__":
     embedding_match()

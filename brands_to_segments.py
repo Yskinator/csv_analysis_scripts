@@ -43,17 +43,21 @@ def match_brands_segments(nlp, brands, brandcounts, commodities, segments):
             print(i, (brand, segment))
     return brands_to_segments
 
-def brands_to_segments():
-    if os.path.isfile("brands_to_segments.csv"):
-        return
+def save_segments(brands_to_segments, filename):
+    print("Writing to file...")
+    with open(filename, encoding="UTF-8", mode="w+") as f:
+        f.write("\n".join([",".join(r) for r in brands_to_segments]))
+    print("Finished.")
+
+def brands_to_segments(brand_counts_file, preprocessed_stocks_file):
     print("Loading brand counts...")
-    with open("brand_counts.csv", encoding="UTF-8") as f:
+    with open(brand_counts_file, encoding="UTF-8") as f:
         r = csv.DictReader(f)
         brandcounts = {}
         for row in r:
             brandcounts[row['Brand']] = row['Count']
     print("Loading brands...")
-    brands = load_brands("preprocessed_stocks_with_brands.csv", brandcounts)
+    brands = load_brands(, brandcounts)
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
@@ -61,10 +65,7 @@ def brands_to_segments():
     commodities, segments = load_segments('segment_strings.csv', nlp)
     print("Matching brands to segments...")
     brands_to_segments = match_brands_segments(nlp, brands, brandcounts, commodities, segments)
-    print("Writing to file...")
-    with open('brands_to_segments.csv', encoding="UTF-8", mode="w+") as f:
-        f.write("\n".join([",".join(r) for r in brands_to_segments]))
-    print("Finished.")
+    return brands_to_segments
 
 if __name__ == "__main__":
     brands_to_segments()
