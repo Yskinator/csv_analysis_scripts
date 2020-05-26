@@ -16,7 +16,7 @@ def save_csv(filename, rows, mode = "w", fieldnames = ""):
             w.writerow(r)
 
 
-def read_csv(filename, rows):
+def read_csv(filename):
     rows = []
     with open(filename) as f:
         r = csv.DictReader(f)
