@@ -5,7 +5,7 @@ import re
 import concurrent.futures
 import brands_to_segments
 import embedding_match
-from file_util import save_csv, read_csv
+from file_utils import save_csv, read_csv
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
