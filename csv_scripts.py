@@ -250,11 +250,7 @@ def add_commodities_to_stocks(stock_master):
     return (rows, fieldnames)
 
 if __name__=="__main__":
-    stock_master = []
-    with open("combined_stock_master_withbrands.csv", "r") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            stock_master.append(row)
+    stock_master = file_util.read_csv("combined_stock_master_withbrands.csv")
     add_commodities_to_stocks(stock_master)
     #description = "MOTOR WIPER"
     #commodities = ["motor oil", "wiper motor", "my foot"]
