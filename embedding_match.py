@@ -7,17 +7,29 @@ csv.field_size_limit(int(sys.maxsize/100000000000))
 
 def load_segments(segments_file, nlp):
     """Load segments from file segments_file."""
+    excluded = excluded_segments()
     with open(segments_file) as f:
         r = csv.DictReader(f)
         commodities = []
         segments = []
         for row in r:
+            if row["Segment Name"] in excluded:
+                continue
             #commodity = row['Commodity Name']
             commodity = row['Segment String']
             segment = row['Segment Name']
             commodities.append(nlp(commodity))
             segments.append(segment)
     return (commodities, segments)
+
+def excluded_segments():
+    exs = []
+    with open("excluded_segments.csv") as f:
+        r = csv.DictReader(f)
+        for row in r:
+            if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
+                exs.append(row["Segment Name"])
+    return exs
 
 def load_brand_segments(filepath):
     """Load segments associated with a file."""
