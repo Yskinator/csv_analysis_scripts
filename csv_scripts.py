@@ -129,10 +129,12 @@ def generate_segment_string_csv():
     if os.path.isfile("segment_strings.csv"):
         return
     segs = segment_names()
+    rows = []
     for s in segs:
         print(s)
         row = {"Segment Name": s, "Segment String": segment_to_string(s)}
-        save_csv("segment_strings.csv", [row])
+        rows.append(row)
+    save_csv("segment_strings.csv", rows)
 
 def generate_preprocessed_stocks_csv(stock_master):
     descriptions = {}
@@ -243,13 +245,14 @@ def add_commodities_to_stocks(stock_master):
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
     segment_strings = read_csv("segment_strings.csv")
-    brands_segs = brands_to_segments.brands_to_segments(segments_strings, brand_counts, preprocessed)
+    brands_segs = brands_to_segments.brands_to_segments(segment_strings, brand_counts, preprocessed)
     stock_with_segments = embedding_match.embedding_match(segment_strings, brands_segs, preprocessed)
     stock_with_commodities = match_commodities(stock_with_segments)
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
 if __name__=="__main__":
+    #generate_segment_string_csv()
     stock_master = read_csv("combined_stock_master_withbrands.csv")
     add_commodities_to_stocks(stock_master)
     #description = "MOTOR WIPER"
