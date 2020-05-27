@@ -240,6 +240,7 @@ def add_commodities_to_stocks_with_files():
     remove_temp_files()
 
 def add_commodities_to_stocks(stock_master):
+    """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
     segment_strings = read_csv("segment_strings.csv")
