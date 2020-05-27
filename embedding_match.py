@@ -40,7 +40,7 @@ def extract(text, choices, num):
     ordered_choices = []
     for i, choice in enumerate(choices):
         ordered_choices.append((i, choice.similarity(text)))
-    ordered_choices = sorted(ordered_choices, key=lambda row: row["Count"], reverse=True)
+    ordered_choices = sorted(ordered_choices, key=lambda row: row[0], reverse=True)
     return ordered_choices[0:num]
 
 def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
