@@ -186,12 +186,10 @@ def save_brands(rows, filename):
 
 def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
     stocks = {}
-    r1 = csv.DictReader(f1)
     print("Generating dictionary from the original data..")
     for row in combined_stocks:
         print("Row id: " + row["id"])
         stocks[int(row["id"])] = row
-    r2 = csv.DictReader(f2)
     for row in stocks_with_commodities:
         ids = filter(None, row["id"].split(";"))
         for i in ids:
@@ -254,7 +252,8 @@ def add_commodities_to_stocks(stock_master):
 if __name__=="__main__":
     #generate_segment_string_csv()
     stock_master = read_csv("combined_stock_master_withbrands.csv")
-    add_commodities_to_stocks(stock_master)
+    rows, fieldnames = add_commodities_to_stocks(stock_master)
+    save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames=fieldnames)
     #description = "MOTOR WIPER"
     #commodities = ["motor oil", "wiper motor", "my foot"]
     #limit = 2
