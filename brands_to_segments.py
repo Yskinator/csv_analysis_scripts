@@ -45,7 +45,8 @@ def process_brands(preprocessed, brand_counts):
 
 def match_brands_segments(nlp, brands, brand_counts, commodities, segments):
     """Match brands to most probable segments."""
-    brands_to_segments = [['Brand', 'Count', 'Segment Name']]
+    keys = ['Brand', 'Count', 'Segment Name']
+    brands_to_segments = []
     for i, brand in enumerate(brands.keys()):
         # Run embedding matching on descriptions
         possible_segments = []
@@ -56,7 +57,7 @@ def match_brands_segments(nlp, brands, brand_counts, commodities, segments):
                 possible_segments.append(segments[results[0][0]])
         segment = max(possible_segments, key=possible_segments.count)
         count = brand_counts[brand] if brand in brand_counts else 0
-        brands_to_segments.append([brand, count, '"'+segment+'"'])
+        brands_to_segments.append(dict(zip(keys, [brand, count, '"'+segment+'"'])))
         if i%100 == 0:
             print(i, (brand, segment))
     return brands_to_segments

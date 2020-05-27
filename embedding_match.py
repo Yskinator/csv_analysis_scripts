@@ -46,10 +46,10 @@ def extract(text, choices, num):
 def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
     """Read rows from supplied csv filepath, calculate and append segments string as new column."""
     new_rows = []
-    for i, row in preprocessed_rows:
+    for i, row in enumerate(preprocessed_rows):
         new_row = row.copy()
         descr = row["Description"]
-        brand = row["Brand"]
+        brand = row["Brands"]
         results = extract(nlp(descr), commodities, 25)
         result_segments = [(segments[i], prob) for i, prob in results]
         if brand_seg and brand in brand_seg.keys():
@@ -57,7 +57,7 @@ def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
             if not segment in result_segments:
                 result_segments = [(segment, 1.0)]+result_segments
                 print("Row "+str(i)+": Added segment "+segment+" to "+descr+" based on brand.")
-        new_row["Segments"] = new_row["Segments"] + ";".join([r[0] for r in result_segments])
+        new_row["Segments"] = ";".join([r[0] for r in result_segments])
         new_rows.append(new_row)
     return new_rows
 
@@ -69,7 +69,7 @@ def csv_write(filepath, rows):
             writer.writerow(row)
     print("Finished.")
 
-def embedding_match(segment_strings, brands_segments, preprocessed_file):
+def embedding_match(segment_strings, brands_segments, preprocessed_stocks):
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
