@@ -18,7 +18,7 @@ def save_csv(filename, rows, mode = "w", fieldnames = []):
 
 def read_csv(filename):
     rows = []
-    with open(filename) as f:
+    with open(filename, encoding='utf-8-sig') as f:
         r = csv.DictReader(f)
         for row in r:
             rows.append(row)

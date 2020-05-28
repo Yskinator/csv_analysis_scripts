@@ -20,13 +20,18 @@ def load_segments(rows, nlp):
         segments.append(segment)
     return (commodities, segments)
 
-def excluded_segments():
+def excluded_segments(return_excluded=True):
     exs = []
-    with open("excluded_segments.csv") as f:
+    with open("excluded_segments.csv", encoding='utf-8-sig') as f:
         r = csv.DictReader(f)
         for row in r:
-            if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
-                exs.append(row["Segment Name"])
+            # print('row = ', row)
+            if return_excluded:
+                if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
+                    exs.append(row["Segment Name"])
+            if not return_excluded:
+                if row["Remove?"] != "YES" or row["Remove?"] != "YES?":
+                    exs.append(row["Segment Name"])
     return exs
 
 def load_brand_segments(rows):
