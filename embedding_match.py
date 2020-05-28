@@ -50,7 +50,7 @@ def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
         new_row = row.copy()
         descr = row["Description"]
         brand = row["Brands"]
-        results = extract(nlp(descr), commodities, 25)
+        results = extract(nlp(descr), commodities, 20)
         result_segments = [(segments[i], prob) for i, prob in results]
         if brand_seg and brand in brand_seg.keys():
             segment = brand_seg[brand]

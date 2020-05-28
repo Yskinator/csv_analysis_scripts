@@ -39,6 +39,7 @@ def match_commodities_for_row(row, brands = []):
     results = most_matching_words(d, list(commodities), limit=1, brands = brands)
     r_string = ""
     commodity_codes = ""
+    commodities["NOT FOUND"] = ""
     if len(results) == 1:
         res = results[0]
         r_string = res
@@ -64,16 +65,19 @@ def get_brands():
 
 def most_matching_words(description, commodities, limit, brands):
     jaccard_distance = {}
-    for c in commodities:
-        c_list = re.findall(r"[\w']+", c)
-        c_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in c_list]
-        #Remove the brand names from the description
-        c_list = list(set(c_list) - set(brands))
-        d_list = re.findall(r"[\w']+", description)
-        d_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in d_list]
-        intersection = len(set(c_list).intersection(set(d_list)))
-        jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
-    commodities_sorted = sorted(list(jaccard_distance.keys()), key = lambda commodity: -jaccard_distance[commodity])
+    try:
+        for c in commodities:
+            c_list = re.findall(r"[\w']+", c)
+            c_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in c_list]
+            #Remove the brand names from the description
+            c_list = list(set(c_list) - set(brands))
+            d_list = re.findall(r"[\w']+", description)
+            d_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in d_list]
+            intersection = len(set(c_list).intersection(set(d_list)))
+            jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
+        commodities_sorted = sorted(list(jaccard_distance.keys()), key = lambda commodity: -jaccard_distance[commodity])
+    except:
+        commodities_sorted = ["NOT FOUND" for i in range(limit)]
     return commodities_sorted[:limit]
 
 def generate_segment_files():
