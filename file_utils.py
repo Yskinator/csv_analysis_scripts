@@ -23,3 +23,12 @@ def read_csv(filename):
         for row in r:
             rows.append(row)
     return rows
+
+def top_category_names():
+    files = os.listdir("top_category_files")
+    top_categories = []
+    for f in files:
+        tc = f.replace(".csv", "")
+        if "~lock" not in tc:
+            top_categories.append(tc)
+    return top_categories

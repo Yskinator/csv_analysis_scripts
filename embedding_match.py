@@ -2,44 +2,59 @@ import sys
 import os
 import csv
 import spacy
+import file_utils
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
-def load_segments(rows, nlp):
-    """Load segments from file segments_file."""
-    excluded = excluded_segments()
+def load_top_categories(rows, nlp):
+    """Load top_categories from file top_categories_file."""
+    excluded = excluded_top_categories()
     commodities = []
-    segments = []
+    top_categories = []
     for row in rows:
-        if row["Segment Name"] in excluded:
+        if row["Top Category Name"] in excluded:
             continue
         #commodity = row['Commodity Name']
-        commodity = row['Segment String']
-        segment = row['Segment Name']
+        commodity = row['Top Category String']
+        top_category = row['Top Category Name']
         commodities.append(nlp(commodity))
-        segments.append(segment)
-    return (commodities, segments)
+        top_categories.append(top_category)
+    return (commodities, top_categories)
 
 def excluded_segments(return_excluded=True):
     exs = []
-    with open("excluded_segments.csv", encoding='utf-8-sig') as f:
-        r = csv.DictReader(f)
-        for row in r:
-            # print('row = ', row)
-            if return_excluded:
-                if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
-                    exs.append(row["Segment Name"])
-            if not return_excluded:
-                if row["Remove?"] != "YES" or row["Remove?"] != "YES?":
-                    exs.append(row["Segment Name"])
+    rows = file_utils.read_csv("excluded_segments.csv")
+    for row in rows:
+        # print('row = ', row)
+        if return_excluded:
+            if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
+                exs.append(row["Segment Name"])
+        if not return_excluded:
+            if row["Remove?"] != "YES" or row["Remove?"] != "YES?":
+                exs.append(row["Segment Name"])
     return exs
 
-def load_brand_segments(rows):
-    """Load segments associated with a file."""
-    brand_seg = {}
+def excluded_top_categories(return_excluded=True):
+    ex_segs = excluded_segments()
+    tcs = file_utils.top_category_names()
+    ex_tcs = []
+    for tc in tcs:
+        rows = file_utils.read_csv("top_category_files/" + tc +".csv")
+        #There can never be more than one segment in a top category -> check first row
+        if return_excluded:
+            if rows[0]["Segment Name"] in ex_segs:
+                ex_tcs.append(tc)
+        else:
+            if rows[0]["Segment Name"] not in ex_segs:
+                ex_tcs.append(tc)
+    return ex_tcs
+
+def load_brand_top_categories(rows):
+    """Load top_categories associated with a file."""
+    brand_tc = {}
     for row in rows:
-        brand_seg[row['Brand']] = row['Segment Name']
-    return brand_seg
+        brand_tc[row['Brand']] = row['Top Category Name']
+    return brand_tc
 
 def extract(text, choices, num):
     ordered_choices = []
@@ -48,21 +63,21 @@ def extract(text, choices, num):
     ordered_choices = sorted(ordered_choices, key=lambda row: row[0], reverse=True)
     return ordered_choices[0:num]
 
-def add_segments(preprocessed_rows, nlp, commodities, segments, brand_seg=None):
-    """Read rows from supplied csv filepath, calculate and append segments string as new column."""
+def add_top_categories(preprocessed_rows, nlp, commodities, top_categories, tc_to_check_count, brand_tc=None):
+    """Read rows from supplied csv filepath, calculate and append top_categories string as new column."""
     new_rows = []
     for i, row in enumerate(preprocessed_rows):
         new_row = row.copy()
         descr = row["Description"]
         brand = row["Brands"]
-        results = extract(nlp(descr), commodities, 20)
-        result_segments = [(segments[i], prob) for i, prob in results]
-        if brand_seg and brand in brand_seg.keys():
-            segment = brand_seg[brand]
-            if not segment in result_segments:
-                result_segments = [(segment, 1.0)]+result_segments
-                print("Row "+str(i)+": Added segment "+segment+" to "+descr+" based on brand.")
-        new_row["Segments"] = ";".join([r[0] for r in result_segments])
+        results = extract(nlp(descr), commodities, tc_to_check_count)
+        result_top_categories = [(top_categories[i], prob) for i, prob in results]
+        if brand_tc and brand in brand_tc.keys():
+            top_category = brand_tc[brand]
+            if not top_category in result_top_categories:
+                result_top_categories = [(top_category, 1.0)]+result_top_categories
+                print("Row "+str(i)+": Added top_category "+top_category+" to "+descr+" based on brand.")
+        new_row["Top Categories"] = ";".join([r[0] for r in result_top_categories])
         new_rows.append(new_row)
     return new_rows
 
@@ -74,16 +89,16 @@ def csv_write(filepath, rows):
             writer.writerow(row)
     print("Finished.")
 
-def embedding_match(segment_strings, brands_segments, preprocessed_stocks):
+def embedding_match(top_category_strings, brands_top_categories, preprocessed_stocks, tc_to_check_count = 100):
     print("Loading spacy vectors...")
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
     print("Reading commodity types...")
-    commodities, segments = load_segments(segment_strings, nlp)
-    print("Loading brand segments...")
-    brand_seg = load_brand_segments(brands_segments)
+    commodities, top_categories = load_top_categories(top_category_strings, nlp)
+    print("Loading brand top_categories...")
+    brand_tc = load_brand_top_categories(brands_top_categories)
     print("Extracting...")
-    new_rows = add_segments(preprocessed_stocks, nlp, commodities, segments, brand_seg)
+    new_rows = add_top_categories(preprocessed_stocks, nlp, commodities, top_categories, tc_to_check_count, brand_tc)
     return new_rows
 
 if __name__ == "__main__":
