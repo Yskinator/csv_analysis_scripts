@@ -3,7 +3,7 @@ import sys
 import csv
 import regex as re
 import concurrent.futures
-import brands_to_segments
+import brands_to_top_categories
 import embedding_match
 from file_utils import save_csv, read_csv
 
