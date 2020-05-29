@@ -3,8 +3,8 @@ import sys
 import csv
 import regex as re
 import concurrent.futures
-from . import brands_to_segments
-from . import embedding_match
+import brands_to_segments
+import embedding_match
 from file_utils import save_csv, read_csv
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
