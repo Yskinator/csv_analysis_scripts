@@ -2,8 +2,8 @@
 
 import csv
 import spacy
-from .embedding_match import extract, load_top_categories
-from .file_utils import read_csv
+from embedding_match import extract, load_top_categories
+from file_utils import read_csv
 
 def load_brands(filepath, brand_counts):
     """Load brands from csv specified by filepath, ignoring brands with a brandcount < 20."""

@@ -4,7 +4,9 @@ import csv
 import copy
 import regex as re
 import concurrent.futures
-import utilities
+import brands_to_top_categories
+import embedding_match
+from file_utils import save_csv, read_csv
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -246,54 +248,54 @@ def remove_temp_files():
     for f in tmp_files:
         os.remove(f)
 
-#def add_commodities_to_stocks_with_files():
+def add_commodities_to_stocks_with_files():
     #generate_top_category_files() # CONSTANT
     #generate_top_category_string_csv() # CONSTANT
 
-    # if not os.path.isfile("preprocessed_stocks_with_brands.csv"):
-        # rows = generate_preprocessed_stocks_csv("combined_stock_master_withbrands.csv")
-        # save_csv("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
+    if not os.path.isfile("preprocessed_stocks_with_brands.csv"):
+        rows = generate_preprocessed_stocks_csv("combined_stock_master_withbrands.csv")
+        save_csv("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
 
-    # if not os.path.isfile("brand_counts.csv"):
-        # brand_counts = count_field("combined_stock_master_withbrands.csv", "Brand")
-        # save_csv("brand_counts.csv", brand_counts, fieldnames = ["Brand", "Count"])
+    if not os.path.isfile("brand_counts.csv"):
+        brand_counts = count_field("combined_stock_master_withbrands.csv", "Brand")
+        save_csv("brand_counts.csv", brand_counts, fieldnames = ["Brand", "Count"])
 
-    # if not os.path.isfile("brands_to_top_categories.csv"):
-        # rows = utilities.brands_to_top_categories.brands_to_top_categories("brand_counts.csv", "preprocessed_stocks_with_brands.csv")
-        # utilities.brands_to_top_categories.save_top_categories(rows, "brands_to_top_categories.csv")
-    # if not os.path.isfile("stock_with_top_categories.csv"):
-        # rows = embedding_match.embedding_match('top_category_strings.csv', "brands_to_top_categories.csv", 'preprocessed_stocks_with_brands.csv', 50)
-        # embedding_match.csv_write('stock_with_top_categories.csv', rows)
+    if not os.path.isfile("brands_to_top_categories.csv"):
+        rows = brands_to_top_categories.brands_to_top_categories("brand_counts.csv", "preprocessed_stocks_with_brands.csv")
+        brands_to_top_categories.save_top_categories(rows, "brands_to_top_categories.csv")
+    if not os.path.isfile("stock_with_top_categories.csv"):
+        rows = embedding_match.embedding_match('top_category_strings.csv', "brands_to_top_categories.csv", 'preprocessed_stocks_with_brands.csv', 50)
+        embedding_match.csv_write('stock_with_top_categories.csv', rows)
 
-    # rows = match_commodities('stock_with_top_categories.csv')
-    # output_file = "stock_with_commodities.csv"
-    # print("Saving to " + output_file)
-    # save_csv(output_file, rows, mode="w")
+    rows = match_commodities('stock_with_top_categories.csv')
+    output_file = "stock_with_commodities.csv"
+    print("Saving to " + output_file)
+    save_csv(output_file, rows, mode="w")
 
-    # rows, fieldnames = map_preprocessed_to_original("combined_stock_master_withbrands.csv", "stock_with_commodities.csv")
-    # print("Saving to combined_stock_master_withbrands_and_commodities.csv..")
-    # save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
-    # print("Done.")
+    rows, fieldnames = map_preprocessed_to_original("combined_stock_master_withbrands.csv", "stock_with_commodities.csv")
+    print("Saving to combined_stock_master_withbrands_and_commodities.csv..")
+    save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
+    print("Done.")
 
-    # remove_temp_files()
+    remove_temp_files()
 
 def add_commodities_to_stocks(stock_master, tc_to_check_count=25):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
-    top_category_strings = utilities.read_csv("top_category_strings.csv")
-    brands_tcs = utilities.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
-    stock_with_top_categories = utilities.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count = tc_to_check_count)
+    top_category_strings = read_csv("top_category_strings.csv")
+    brands_tcs = brands_to_top_categories.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
+    stock_with_top_categories = embedding_match.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count = tc_to_check_count)
     stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.05)
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
 def generate_brand_counts_csv():
     if not os.path.isfile("brand_counts.csv"):
-        stock_master = utilities.read_csv("combined_stock_master_withbrands.csv")
+        stock_master = read_csv("combined_stock_master_withbrands.csv")
         brands = count_field(stock_master, "Brand")
-        utilities.save_csv("brand_counts.csv", brands, fieldnames = ["Brand", "Count"])
+        save_csv("brand_counts.csv", brands, fieldnames = ["Brand", "Count"])
 
 
 def generate_constant_csvs():
@@ -306,7 +308,7 @@ if __name__=="__main__":
     import time
     stime = time.time()
 
-    stock_master = utilities.read_csv(sys.argv[1])
+    stock_master = read_csv(sys.argv[1])
     if len(sys.argv) > 3:
         top_categories_to_check_count = sys.argv[2]
     else:
