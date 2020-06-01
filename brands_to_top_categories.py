@@ -2,8 +2,12 @@
 
 import csv
 import spacy
-from embedding_match import extract, load_top_categories
-from file_utils import read_csv
+if "LOCAL" in os.environ:
+    import embedding_match
+    import file_utils
+else:
+    from . import embedding_match
+    from . import file_utils
 
 def load_brands(filepath, brand_counts):
     """Load brands from csv specified by filepath, ignoring brands with a brandcount < 20."""
@@ -43,7 +47,7 @@ def match_brands_top_categories(nlp, brands, brand_counts, commodities, top_cate
         for descr in brands[brand]:
             descr_doc = nlp(descr)
             if descr_doc.has_vector and descr_doc.vector_norm != 0:
-                results = extract(descr_doc, commodities, 1)
+                results = embedding_match.extract(descr_doc, commodities, 1)
                 possible_top_categories.append(top_categories[results[0][0]])
         top_category = max(possible_top_categories, key=possible_top_categories.count)
         count = brand_counts[brand] if brand in brand_counts else 0
@@ -68,14 +72,14 @@ def brands_to_top_categories(top_category_strings, brand_counts, preprocessed):
     nlp = spacy.load("en_vectors_web_lg")
     nlp.max_length = 1006000
     print("Loading top_categories...")
-    commodities, top_categories = load_top_categories(top_category_strings, nlp)
+    commodities, top_categories = embedding_match.load_top_categories(top_category_strings, nlp)
     print("Matching brands to top_categories...")
     brands_to_tc = match_brands_top_categories(nlp, brands, brand_counts, commodities, top_categories)
     return brands_to_tc
 
 if __name__ == "__main__":
-    TOP_CATEGORY_STRINGS = read_csv("top_category_strings.csv")
-    BRAND_COUNTS = read_csv("brand_counts.csv")
-    PREPROCESSED = read_csv("preprocessed.csv")
+    TOP_CATEGORY_STRINGS = file_utils.read_csv("top_category_strings.csv")
+    BRAND_COUNTS = file_utils.read_csv("brand_counts.csv")
+    PREPROCESSED = file_utils.read_csv("preprocessed.csv")
     BRANDS_TO_SEG = brands_to_top_categories(TOP_CATEGORY_STRINGS, BRAND_COUNTS, PREPROCESSED)
     save_top_categories(BRANDS_TO_SEG, "brands_to_top_categories.csv")

@@ -4,9 +4,14 @@ import csv
 import copy
 import regex as re
 import concurrent.futures
-import brands_to_top_categories
-import embedding_match
-from file_utils import save_csv, read_csv
+if "LOCAL" in os.environ:
+    import file_utils
+    import embedding_match
+    import brands_to_top_categories
+else:
+    from . import file_utils
+    from . import embedding_match
+    from . import brands_to_top_categories
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -141,7 +146,7 @@ def generate_top_category_files(column_name):
         for tc in tcs:
             filename = "top_category_files/" + tc + ".csv"
             print("Saving " + filename)
-            save_csv(filename, tcs[tc])
+            file_utils.save_csv(filename, tcs[tc])
 
 
 def top_category_to_string(top_category_name):
@@ -171,7 +176,7 @@ def top_category_to_string(top_category_name):
 def generate_top_category_string_csv():
     if os.path.isfile("top_category_strings.csv"):
         return
-    tcs = top_category_names()
+    tcs = file_utils.top_category_names()
     rows = []
     for s in tcs:
         print(s)
@@ -254,11 +259,11 @@ def add_commodities_to_stocks_with_files():
 
     if not os.path.isfile("preprocessed_stocks_with_brands.csv"):
         rows = generate_preprocessed_stocks_csv("combined_stock_master_withbrands.csv")
-        save_csv("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
+        file_utils.save_csv("preprocessed_stocks_with_brands.csv", rows, mode="w", fieldnames = ["Description", "id", "Brands"])
 
     if not os.path.isfile("brand_counts.csv"):
         brand_counts = count_field("combined_stock_master_withbrands.csv", "Brand")
-        save_csv("brand_counts.csv", brand_counts, fieldnames = ["Brand", "Count"])
+        file_utils.save_csv("brand_counts.csv", brand_counts, fieldnames = ["Brand", "Count"])
 
     if not os.path.isfile("brands_to_top_categories.csv"):
         rows = brands_to_top_categories.brands_to_top_categories("brand_counts.csv", "preprocessed_stocks_with_brands.csv")
@@ -270,11 +275,11 @@ def add_commodities_to_stocks_with_files():
     rows = match_commodities('stock_with_top_categories.csv')
     output_file = "stock_with_commodities.csv"
     print("Saving to " + output_file)
-    save_csv(output_file, rows, mode="w")
+    file_utils.save_csv(output_file, rows, mode="w")
 
     rows, fieldnames = map_preprocessed_to_original("combined_stock_master_withbrands.csv", "stock_with_commodities.csv")
     print("Saving to combined_stock_master_withbrands_and_commodities.csv..")
-    save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
+    file_utils.save_csv("combined_stock_master_withbrands_and_commodities.csv", rows, fieldnames = fieldnames, mode = "w")
     print("Done.")
 
     remove_temp_files()
@@ -284,7 +289,7 @@ def add_commodities_to_stocks(stock_master, tc_to_check_count=25):
     stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
-    top_category_strings = read_csv("top_category_strings.csv")
+    top_category_strings = file_utils.read_csv("top_category_strings.csv")
     brands_tcs = brands_to_top_categories.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
     stock_with_top_categories = embedding_match.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count = tc_to_check_count)
     stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.05)
@@ -293,9 +298,9 @@ def add_commodities_to_stocks(stock_master, tc_to_check_count=25):
 
 def generate_brand_counts_csv():
     if not os.path.isfile("brand_counts.csv"):
-        stock_master = read_csv("combined_stock_master_withbrands.csv")
+        stock_master = file_utils.read_csv("combined_stock_master_withbrands.csv")
         brands = count_field(stock_master, "Brand")
-        save_csv("brand_counts.csv", brands, fieldnames = ["Brand", "Count"])
+        file_utils.save_csv("brand_counts.csv", brands, fieldnames = ["Brand", "Count"])
 
 
 def generate_constant_csvs():
@@ -308,13 +313,13 @@ if __name__=="__main__":
     import time
     stime = time.time()
 
-    stock_master = read_csv(sys.argv[1])
+    stock_master = file_utils.read_csv(sys.argv[1])
     if len(sys.argv) > 3:
         top_categories_to_check_count = sys.argv[2]
     else:
         top_categories_to_check_count = 100
     rows, fieldnames = add_commodities_to_stocks(stock_master, top_categories_to_check_count)
-    save_csv(sys.argv[1].split(".csv")[0]+"_and_commodities.csv", rows, fieldnames=fieldnames)
+    file_utils.save_csv(sys.argv[1].split(".csv")[0]+"_and_commodities.csv", rows, fieldnames=fieldnames)
 
     etime = time.time()
     ttime = etime-stime
