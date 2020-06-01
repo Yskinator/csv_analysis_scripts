@@ -70,7 +70,7 @@ def brands_to_top_categories(top_category_strings, brand_counts, preprocessed):
     print("Loading brands...")
     brands = process_brands(preprocessed, brand_counts)
     print("Loading spacy vectors...")
-    nlp = spacy.load("en_vectors_web_sm")
+    nlp = spacy.load("en_core_web_sm")
     nlp.max_length = 1006000
     print("Loading top_categories...")
     commodities, top_categories = embedding_match.load_top_categories(top_category_strings, nlp)
