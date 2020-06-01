@@ -17,6 +17,15 @@ unspsc_codes_3.csv
 excluded_segments.csv
 
 
+Create an environment variable LOCAL if not running on azure functions. This is needed because imports are handled differently there.
+
+Linux:
+
+in ~/.bashrc
+
+export LOCAL="LOCAL"
+
+
 Generate the rest of the required csvs:
 python constant_csv_generator.py
 
