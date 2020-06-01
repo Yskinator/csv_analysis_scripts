@@ -1,5 +1,6 @@
 """Connect brands to their most likely product top_categories."""
 
+import os
 import csv
 import spacy
 # if "LOCAL" in os.environ:

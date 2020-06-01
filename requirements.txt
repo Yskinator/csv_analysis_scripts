@@ -4,4 +4,5 @@ spacy
 thinc
 requests
 regex
+flask
 https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-2.2.5/en_core_web_lg-2.2.5.tar.gz
