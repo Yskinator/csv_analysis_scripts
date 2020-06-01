@@ -33,4 +33,5 @@ python constant_csv_generator.py
 Run the script:
 #level denotes the level to operate the initial matching at.
 #num_to_check determines the amount of top categories that are checked first.
+
 $ python csv_scripts.py filename.csv level[Segment, Family, Class] num_to_check[int]
