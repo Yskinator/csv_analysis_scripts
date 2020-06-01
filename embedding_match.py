@@ -94,7 +94,7 @@ def csv_write(filepath, rows):
 
 def embedding_match(top_category_strings, brands_top_categories, preprocessed_stocks, tc_to_check_count = 100):
     print("Loading spacy vectors...")
-    nlp = spacy.load("en_vectors_web_lg")
+    nlp = spacy.load("en_vectors_web_sm")
     nlp.max_length = 1006000
     print("Reading commodity types...")
     commodities, top_categories = load_top_categories(top_category_strings, nlp)
