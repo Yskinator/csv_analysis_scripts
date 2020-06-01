@@ -2,12 +2,12 @@
 
 import csv
 import spacy
-if "LOCAL" in os.environ:
-    import embedding_match
-    import file_utils
-else:
-    from . import embedding_match
-    from . import file_utils
+# if "LOCAL" in os.environ:
+import embedding_match
+import file_utils
+# else:
+    # from . import embedding_match
+    # from . import file_utils
 
 def load_brands(filepath, brand_counts):
     """Load brands from csv specified by filepath, ignoring brands with a brandcount < 20."""

@@ -2,10 +2,10 @@ import sys
 import os
 import csv
 import spacy
-if "LOCAL" in os.environ:
-    import file_utils
-else:
-    from . import file_utils
+# if "LOCAL" in os.environ:
+import file_utils
+# else:
+    # from . import file_utils
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 

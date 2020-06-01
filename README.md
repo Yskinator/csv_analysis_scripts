@@ -22,5 +22,6 @@ python constant_csv_generator.py
 
 
 Run the script:
-#The number determines the amount of top categories that are checked first.
-python csv_scripts.py combined_stock_master_withbrands.csv 50
+#level denotes the level to operate the initial matching at.
+#num_to_check determines the amount of top categories that are checked first.
+$ python csv_scripts.py filename.csv level[Segment, Family, Class] num_to_check[int]

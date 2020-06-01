@@ -4,14 +4,14 @@ import csv
 import copy
 import regex as re
 import concurrent.futures
-if "LOCAL" in os.environ:
-    import file_utils
-    import embedding_match
-    import brands_to_top_categories
-else:
-    from . import file_utils
-    from . import embedding_match
-    from . import brands_to_top_categories
+# if "LOCAL" in os.environ:
+import file_utils
+import embedding_match
+import brands_to_top_categories
+# else:
+#     from . import file_utils
+#     from . import embedding_match
+#     from . import brands_to_top_categories
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -30,7 +30,7 @@ def match_commodities(stock_with_top_categories, jaccard_threshold = 0.3):
 
 def match_commodities_for_row(row, jaccard_threshold, brands = []):
     d = row["Description"]
-    print("Row " + row["id"] + ", matching commodities.")
+    # print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
     commodities = {}
@@ -46,20 +46,9 @@ def match_commodities_for_row(row, jaccard_threshold, brands = []):
     r_string = ""
     commodity_codes = ""
     commodities["NOT FOUND"] = ""
-    if len(results) == 1:
-        res = results[0]
-        sc = scores[0]
-        r_string = res
-        commodity_codes = commodities[res]
-    else:
-        for res in results:
-            #r_string += res[0] + ";"
-            r_string += res + ";"
-            #commodity_codes += commodities[res[0]] + ";"
-            commodity_codes += commodities[res] + ";"
 
-    ###NEW CODE TO RE-RUN MATCHING IF LOW JACCARD SCORES
-    if sc < jaccard_threshold:
+    ###RE-RUN MATCHING IF LOW JACCARD SCORES
+    if scores[0] < jaccard_threshold:
         commodities = {}
         #Get ALL top_category files
         tcs = embedding_match.excluded_top_categories(return_excluded=False)
@@ -72,24 +61,21 @@ def match_commodities_for_row(row, jaccard_threshold, brands = []):
                     commodities[row2["Commodity Name"]] = row2["Commodity"]
         #results = process.extract(d, list(commodities), limit=3)
         results, scores = most_matching_words(d, list(commodities), limit=1, brands = brands)
-        r_string = ""
-        commodity_codes = ""
-        commodities["NOT FOUND"] = ""
-        if len(results) == 1:
-            res = results[0]
-            sc = scores[0]
-            r_string = res
-            commodity_codes = commodities[res]
-        else:
-            for res in results:
-                #r_string += res[0] + ";"
-                r_string += res + ";"
-                #commodity_codes += commodities[res[0]] + ";"
-                commodity_codes += commodities[res] + ";"        
     ###END NEW CODE
 
-    row.update({"Commodity": r_string, "Commodity Code": commodity_codes})
-    print("Row " + row["id"] + ", commodities found.")
+    if len(results) == 1:
+        res = results[0]
+        sc = round(scores[0], 2)
+        r_string = res
+        commodity_codes = commodities[res]
+    else:
+        for res in results:
+            r_string += res + ";"
+            commodity_codes += commodities[res] + ";"
+            sc = scores        
+
+    row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
+    # print("Row " + row["id"] + ", commodities found.")
     return row
 
 def get_brands():
@@ -134,9 +120,10 @@ def most_matching_words(description, commodities, limit, brands):
 
 def generate_top_category_files(column_name):
     if os.path.isdir("top_category_files/"):
+        print("top_category_files/ directory already exists")
         return
     os.mkdir("top_category_files")
-    with open('unspsc_codes_3.csv') as f:
+    with open('unspsc_codes_v3.csv') as f:
         r = csv.DictReader(f)
         tcs = {}
         for row in r:
@@ -175,6 +162,7 @@ def top_category_to_string(top_category_name):
 
 def generate_top_category_string_csv():
     if os.path.isfile("top_category_strings.csv"):
+        print("top_category_strings.csv file already exists")
         return
     tcs = file_utils.top_category_names()
     rows = []
@@ -182,7 +170,7 @@ def generate_top_category_string_csv():
         print(s)
         row = {"Top Category Name": s, "Top Category String": top_category_to_string(s)}
         rows.append(row)
-    save_csv("top_category_strings.csv", rows)
+    file_utils.save_csv("top_category_strings.csv", rows)
 
 def generate_preprocessed_stocks_csv(stock_master):
     descriptions = {}
@@ -239,13 +227,13 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         ids = filter(None, row["id"].split(";"))
         for i in ids:
             print("Updating row id: " + i)
-            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"]})
+            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"], "Jaccard": row["Jaccard"]})
     rows = []
     ids = list(stocks.keys())
     ids.sort()
     for i in ids:
         rows.append(stocks[i])
-    fieldnames = ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code"]
+    fieldnames = ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard"]
     return (rows, fieldnames)
 
 def remove_temp_files():
@@ -284,15 +272,16 @@ def add_commodities_to_stocks_with_files():
 
     remove_temp_files()
 
-def add_commodities_to_stocks(stock_master, tc_to_check_count=25):
+def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
+    generate_constant_csvs(level)
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
     brands_tcs = brands_to_top_categories.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
     stock_with_top_categories = embedding_match.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count = tc_to_check_count)
-    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.05)
+    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.3) #Default Jaccard score threshold
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
@@ -303,26 +292,36 @@ def generate_brand_counts_csv():
         file_utils.save_csv("brand_counts.csv", brands, fieldnames = ["Brand", "Count"])
 
 
-def generate_constant_csvs():
-    generate_top_category_files("Family Name")
+def generate_constant_csvs(level="Family Name"):
+    generate_top_category_files(level)
     generate_top_category_string_csv()
     generate_brand_counts_csv()
 
 if __name__=="__main__":
     import sys
     import time
-    stime = time.time()
+    if len(sys.argv) != 4:
+        print("""
+        Script to allocate items to a UNSPSC product
 
+        Use: $ python csv_scripts.py filename.csv level[Segment, Family, Class] num_to_check[int]
+        
+        """)
+        sys.exit()
+
+    stime = time.time()
     stock_master = file_utils.read_csv(sys.argv[1])
+    level = sys.argv[2]
+
     if len(sys.argv) > 3:
-        top_categories_to_check_count = sys.argv[2]
+        top_categories_to_check_count = int(sys.argv[3])
     else:
         top_categories_to_check_count = 100
-    rows, fieldnames = add_commodities_to_stocks(stock_master, top_categories_to_check_count)
+    
+    rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count)
     file_utils.save_csv(sys.argv[1].split(".csv")[0]+"_and_commodities.csv", rows, fieldnames=fieldnames)
 
     etime = time.time()
     ttime = etime-stime
     print('Time = ', ttime, 's')
     
-    #generate_constant_csvs()
