@@ -2,7 +2,7 @@ import sys
 import os
 import csv
 import spacy
-import file_utils
+from .file_utils import read_csv, top_category_names
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -23,7 +23,7 @@ def load_top_categories(rows, nlp):
 
 def excluded_segments(return_excluded=True):
     exs = []
-    rows = file_utils.read_csv("excluded_segments.csv")
+    rows = read_csv("excluded_segments.csv")
     for row in rows:
         # print('row = ', row)
         if return_excluded:
@@ -36,10 +36,10 @@ def excluded_segments(return_excluded=True):
 
 def excluded_top_categories(return_excluded=True):
     ex_segs = excluded_segments()
-    tcs = file_utils.top_category_names()
+    tcs = top_category_names()
     ex_tcs = []
     for tc in tcs:
-        rows = file_utils.read_csv("top_category_files/" + tc +".csv")
+        rows = read_csv("top_category_files/" + tc +".csv")
         #There can never be more than one segment in a top category -> check first row
         if return_excluded:
             if rows[0]["Segment Name"] in ex_segs:
