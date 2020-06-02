@@ -38,6 +38,9 @@ def excluded_segments(return_excluded=True):
     return exs
 
 def excluded_top_categories(return_excluded=True):
+    """If return_excluded is True, returns list of excluded top categories.
+    If return_excluded is False, returns list of non-excluded top categories.
+    This and excluded_segments should be renamed somehow."""
     ex_segs = excluded_segments()
     tcs = file_utils.top_category_names()
     ex_tcs = []
