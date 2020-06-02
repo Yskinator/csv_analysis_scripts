@@ -28,40 +28,41 @@ def match_commodities(stock_with_top_categories, jaccard_threshold = 0.3):
             rows.append(updated_row)
     return rows
 
-def match_commodities_for_row(row, jaccard_threshold, brands = []):
-    d = row["Description"]
+def get_commodities_for_top_categories(top_categories):
+    """Given a list of top categories:
+        (1) go through the matching files and
+        (2) compose a list of all commodities contained in those files.
+
+        Arguments:
+        top_categories -- list of names of top categories to fetch
+
+        Returns:
+        List of commodities in the given top categories."""
+    commodities = {}
+    for top_cat in top_categories:
+        with open("top_category_files/" + top_cat + ".csv") as f:
+            r = csv.DictReader(f)
+            for row in r:
+                if row["Commodity Name"] in commodities:
+                    print("Duplicate commodity: " + row["Commodity Name"])
+                commodities[row["Commodity Name"]] = row["Commodity"]
+    return commodities
+
+def match_commodities_for_row(row, jaccard_threshold=0.3, brands=[]):
+    desc = row["Description"]
     # print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
-    commodities = {}
-    for s in tcs:
-        with open("top_category_files/" + s + ".csv") as f2:
-            r2 = csv.DictReader(f2)
-            for row2 in r2:
-                if row2["Commodity Name"] in commodities:
-                    print("Duplicate commodity: " + row2["Commodity Name"])
-                commodities[row2["Commodity Name"]] = row2["Commodity"]
-    #results = process.extract(d, list(commodities), limit=3)
-    results, scores = most_matching_words(d, list(commodities), limit=1, brands = brands)
-    r_string = ""
-    commodity_codes = ""
-    commodities["NOT FOUND"] = ""
+    commodities = get_commodities_for_top_categories(tcs)
+    results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
 
-    ###RE-RUN MATCHING IF LOW JACCARD SCORES
+    #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
-        commodities = {}
         #Get ALL top_category files
         tcs = embedding_match.excluded_top_categories(return_excluded=False)
-        for s in tcs:
-            with open("top_category_files/" + s + ".csv") as f2:
-                r2 = csv.DictReader(f2)
-                for row2 in r2:
-                    if row2["Commodity Name"] in commodities:
-                        print("Duplicate commodity: " + row2["Commodity Name"])
-                    commodities[row2["Commodity Name"]] = row2["Commodity"]
-        #results = process.extract(d, list(commodities), limit=3)
-        results, scores = most_matching_words(d, list(commodities), limit=1, brands = brands)
-    ###END NEW CODE
+        commodities = get_commodities_for_top_categories(tcs)
+        results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
+    #END NEW CODE
 
     if len(results) == 1:
         res = results[0]
@@ -69,10 +70,13 @@ def match_commodities_for_row(row, jaccard_threshold, brands = []):
         r_string = res
         commodity_codes = commodities[res]
     else:
+        r_string = ""
+        commodity_codes = ""
+        commodities["NOT FOUND"] = ""
         for res in results:
             r_string += res + ";"
             commodity_codes += commodities[res] + ";"
-            sc = scores        
+            sc = scores
 
     row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
     # print("Row " + row["id"] + ", commodities found.")
