@@ -165,7 +165,7 @@ def csv_write(filepath, rows):
             writer.writerow(row)
     print("Finished.")
 
-def embedding_match(top_category_strings, brands_top_categories, preprocessed_stocks, tc_to_check_count = 100):
+def embedding_match(top_category_strings, brands_top_categories, preprocessed_stocks, tc_to_check_count):
     print("Loading spacy vectors...")
     nlp = spacy.load("en_core_web_sm")
     nlp.max_length = 1006000
@@ -176,6 +176,30 @@ def embedding_match(top_category_strings, brands_top_categories, preprocessed_st
     print("Extracting...")
     new_rows = add_top_categories(preprocessed_stocks, nlp, commodities, top_categories, tc_to_check_count, brand_tc)
     return new_rows
+
+def all_categories(top_category_strings, preprocessed_stocks):
+    categories = ""
+    excluded = excluded_top_categories()
+    for row in top_category_strings:
+        top_category = row['Top Category Name']
+        if top_category in excluded:
+            continue
+        categories += top_category + ";"
+    rows = []
+    for row in preprocessed_stocks:
+        row["Top Categories"] = categories
+        rows.append(row)
+    return rows
+
+def match_preprocessed_to_top_categories(preprocessed_stocks, top_category_strings, brand_counts, tc_to_check_count = 100):
+    if len(preprocessed_stocks) > 1000:
+        print("Large job detected. Matching rows to relevant categories..") 
+        brands_tcs = brands_to_top_categories(top_category_strings, brand_counts, preprocessed_stocks)
+        stock_with_top_categories = embedding_match(top_category_strings, brands_tcs, preprocessed_stocks, tc_to_check_count = tc_to_check_count)
+    else:
+        print("Small job detected. Checking all categories..")
+        stock_with_top_categories = all_categories(top_category_strings, preprocessed_stocks)
+    return stock_with_top_categories
 
 if __name__ == "__main__":
     embedding_match()
