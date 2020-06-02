@@ -23,7 +23,7 @@ def api():
         rows = [{"Brand": brand, "id": "1", "text": text}]
         results = csv_scripts.add_commodities_to_stocks(rows)
         msg = "Success!"
-        return {"Results": results[0], "Errors": [], "Status": status, "Message": msg}
+        return {"Results": results[0], "Errors": [], "Status": "finished", "Message": msg}
     else:
         data = request.json
         rows = []
