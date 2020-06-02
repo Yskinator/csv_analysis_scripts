@@ -48,7 +48,7 @@ def get_commodities_for_top_categories(top_categories):
 
 def match_commodities_for_row(row, jaccard_threshold=0.3, brands=[]):
     desc = row["Description"]
-    # print("Row " + row["id"] + ", matching commodities.")
+    print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
     commodities = get_commodities_for_top_categories(tcs)
@@ -77,7 +77,7 @@ def match_commodities_for_row(row, jaccard_threshold=0.3, brands=[]):
             sc = scores
 
     row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
-    # print("Row " + row["id"] + ", commodities found.")
+    print("Row " + row["id"] + ", commodities found.")
     return row
 
 def get_brands():
