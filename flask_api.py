@@ -22,9 +22,9 @@ def api():
         text = request.args.get("description")
         rows = [{"Brand": brand, "id": "1", "text": text}]
     else:
-        json = request.json
+        data = request.json
         rows = []
-        for i, row in enumerate(request["rows"]):
+        for i, row in enumerate(data["rows"]):
             if "brand" in row:
                 brand = row["brand"]
             else:
