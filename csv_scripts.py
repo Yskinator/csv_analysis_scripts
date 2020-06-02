@@ -6,12 +6,10 @@ import concurrent.futures
 import regex as re
 # if "LOCAL" in os.environ:
 import file_utils
-import embedding_match
-import brands_to_top_categories
+import top_category_matcher
 # else:
 #     from . import file_utils
-#     from . import embedding_match
-#     from . import brands_to_top_categories
+#     from . import top_category_matcher
 
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
@@ -251,9 +249,9 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
-    brands_tcs = brands_to_top_categories.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
-    stock_with_top_categories = embedding_match.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count=tc_to_check_count)
-    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold=0.3) #Default Jaccard score threshold
+    brands_tcs = top_category_matcher.brands_to_top_categories(top_category_strings, brand_counts, preprocessed)
+    stock_with_top_categories = top_category_matcher.embedding_match(top_category_strings, brands_tcs, preprocessed, tc_to_check_count = tc_to_check_count)
+    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.3) #Default Jaccard score threshold
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
