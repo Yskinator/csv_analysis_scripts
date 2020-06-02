@@ -13,7 +13,7 @@ redis_url = os.getenv('REDISTOGO_URL')
 urlparse.uses_netloc.append('redis')
 url = urlparse.urlparse(redis_url)
 conn = Redis(host=url.hostname, port=url.port, db=0, password=url.password)
-q = Queue(connection=conn, serializer=json)  #no args implies the default queue
+q = Queue(connection=conn)  #no args implies the default queue
 
 @app.route("/api", methods = ["GET", "POST"])
 def api():
