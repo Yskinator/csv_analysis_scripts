@@ -30,7 +30,7 @@ def api():
             else:
                 brand = ""
             rows.append({"Brand": brand, "id": str(i), "text": row["description"]})
-    row_hash = hash(json.dumps(rows))
+    row_hash = str(hash(json.dumps(rows)))
     try:
         j = Job.fetch(row_hash, conn)
         status = j.get_status()
