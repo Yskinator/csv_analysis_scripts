@@ -1,6 +1,7 @@
 import csv_scripts
 from flask import Flask, jsonify, request
-from rq import Queue, NoSuchJobError
+from rq import Queue
+from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from redis import Redis
 import urllib.parse as urlparse
