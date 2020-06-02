@@ -1,3 +1,4 @@
+import os
 import csv_scripts
 from flask import Flask, jsonify, request
 from rq import Queue
