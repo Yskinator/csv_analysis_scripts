@@ -57,10 +57,9 @@ def match_commodities_for_row(row, jaccard_threshold=0.3, brands=[]):
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
         #Get ALL top_category files
-        tcs = embedding_match.excluded_top_categories(return_excluded=False)
+        tcs = top_category_matcher.excluded_top_categories(return_excluded=False)
         commodities = get_commodities_for_top_categories(tcs)
         results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
-    #END NEW CODE
 
     if len(results) == 1:
         res = results[0]
