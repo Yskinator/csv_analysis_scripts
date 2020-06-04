@@ -25,7 +25,7 @@ def match_commodities(stock_with_top_categories, jaccard_threshold):
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = []
         for row in stock_with_top_categories:
-            futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, brands, commodities))
+            futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, commodities, brands))
         for future in futures:
             updated_row = future.result()
             rows.append(updated_row)
@@ -54,7 +54,7 @@ def get_commodities_for_top_categories(top_categories):
                 commodities[row["Commodity Name"]] = row["Commodity"]
     return commodities
 
-def match_commodities_for_row(row, jaccard_threshold, brands=[], commodities_by_tc):
+def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[]):
     desc = row["Description"]
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
