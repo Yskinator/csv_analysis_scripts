@@ -241,7 +241,7 @@ def remove_temp_files():
     for f in tmp_files:
         os.remove(f)
 
-def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25):
+def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold = 0.3):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
     generate_constant_csvs(level)
@@ -250,7 +250,7 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
     stock_with_top_categories = top_category_matcher.match_preprocessed_to_top_categories(preprocessed, top_category_strings, brand_counts, tc_to_check_count = tc_to_check_count)
     print("Matching commodities")
-    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold = 0.3) #Default Jaccard score threshold
+    stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold)
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
