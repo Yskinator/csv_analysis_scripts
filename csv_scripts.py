@@ -66,12 +66,14 @@ def match_commodities_for_row(row, jaccard_threshold, brands=[], commodities_by_
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
-        #Get ALL top_category files
-        tcs = list(commodities_by_tc.keys())
+        #Get ALL top_category files minus the ones we checked before
+        tcs = list(commodities_by_tc.keys()) - tcs
         commodities = []
         for tc in tcs:
             commodities += commodities_by_tc[tc]
-        results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
+        more_results, more_scores = most_matching_words(desc, commodities, limit=1, brands=brands)
+        jaccard_scores_dict_all_results = dict(zip(results, scores)).update(dict(zip(more_results, mor    e_scores)))
+        results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
 
     if len(results) == 1:
         res = results[0]
@@ -125,11 +127,17 @@ def most_matching_words(description, commodities, limit, brands):
             d_list = list(set(d_list) - set(brands))
             intersection = len(set(c_list).intersection(set(d_list)))
             jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
-        commodities_sorted = sorted(list(jaccard_distance.keys()), key=lambda commodity: -jaccard_distance[commodity])
-        scores_sorted = sorted(list(jaccard_distance.values()), reverse=True)
+        commodities_sorted, scores_sorted = best_n_results(jaccard_distance, limit)
     except:
         commodities_sorted = ["NOT FOUND" for i in range(limit)]
+        scores_sorted = [0 for i in range(limit)]
     return commodities_sorted[:limit], scores_sorted[:limit]
+
+def best_n_results(jaccard_distance, n):
+    commodities_sorted = sorted(list(jaccard_distance.keys()), key=lambda commodity: -jaccard_distance[commodity])
+    scores_sorted = sorted(list(jaccard_distance.values()), reverse=True)
+    return commodities_sorted[:n], scores_sorted[:n]
+
 
 def generate_top_category_files(column_name):
     if os.path.isdir("top_category_files/"):
