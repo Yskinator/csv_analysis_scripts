@@ -17,14 +17,22 @@ csv.field_size_limit(int(sys.maxsize/100000000000))
 def match_commodities(stock_with_top_categories, jaccard_threshold):
     rows = []
     brands = get_brands()
+    #Fetches all the allowed top categories.
+    tcs = top_category_matcher.excluded_top_categories(return_excluded=False)
+    commodities = {}
+    for tc in tcs:
+        commodities[tc] = get_commodities_for_top_category(tc)
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = []
         for row in stock_with_top_categories:
-            futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, brands))
+            futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, brands, commodities))
         for future in futures:
             updated_row = future.result()
             rows.append(updated_row)
     return rows
+
+def get_commodities_for_top_category(top_category):
+    return get_commodities_for_top_categories([top_category])
 
 def get_commodities_for_top_categories(top_categories):
     """Given a list of top categories:
@@ -46,19 +54,23 @@ def get_commodities_for_top_categories(top_categories):
                 commodities[row["Commodity Name"]] = row["Commodity"]
     return commodities
 
-def match_commodities_for_row(row, jaccard_threshold, brands=[]):
+def match_commodities_for_row(row, jaccard_threshold, brands=[], commodities_by_tc):
     desc = row["Description"]
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
-    commodities = get_commodities_for_top_categories(tcs)
+    commodities = []
+    for tc in tcs:
+        commodities += commodities_by_tc[tc]
     results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
         #Get ALL top_category files
-        tcs = top_category_matcher.excluded_top_categories(return_excluded=False)
-        commodities = get_commodities_for_top_categories(tcs)
+        tcs = list(commodities_by_tc.keys())
+        commodities = []
+        for tc in tcs:
+            commodities += commodities_by_tc[tc]
         results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
 
     if len(results) == 1:
