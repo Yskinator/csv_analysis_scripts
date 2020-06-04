@@ -72,7 +72,7 @@ def match_commodities_for_row(row, jaccard_threshold, brands=[], commodities_by_
         for tc in tcs:
             commodities += commodities_by_tc[tc]
         more_results, more_scores = most_matching_words(desc, commodities, limit=1, brands=brands)
-        jaccard_scores_dict_all_results = dict(zip(results, scores)).update(dict(zip(more_results, mor    e_scores)))
+        jaccard_scores_dict_all_results = dict(zip(results, scores)).update(dict(zip(more_results, more_scores)))
         results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
 
     if len(results) == 1:
