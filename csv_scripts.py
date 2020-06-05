@@ -263,7 +263,7 @@ def remove_temp_files():
     for f in tmp_files:
         os.remove(f)
 
-def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold = 0.1):
+def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold = 0.3):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
     generate_constant_csvs(level)
