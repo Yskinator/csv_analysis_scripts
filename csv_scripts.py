@@ -116,7 +116,7 @@ def most_matching_words(description, commodities, limit, brands):
      - commodities_sorted[:limit]
      - scores_sorted[:limit]
     '''
-    jaccard_distance = {}
+    jaccard_index = {}
     try:
         for c in commodities:
             c_list = re.findall(r"[\w]+", c)
@@ -128,16 +128,16 @@ def most_matching_words(description, commodities, limit, brands):
             #Remove the brand names from the description
             d_list = list(set(d_list) - set(brands))
             intersection = len(set(c_list).intersection(set(d_list)))
-            jaccard_distance[c] = intersection / (len(c_list) + len(d_list) - intersection)
-        commodities_sorted, scores_sorted = best_n_results(jaccard_distance, limit)
+            jaccard_index[c] = intersection / (len(c_list) + len(d_list) - intersection)
+        commodities_sorted, scores_sorted = best_n_results(jaccard_index, limit)
     except:
         commodities_sorted = ["NOT FOUND" for i in range(limit)]
         scores_sorted = [0 for i in range(limit)]
     return commodities_sorted[:limit], scores_sorted[:limit]
 
-def best_n_results(jaccard_distance, n):
-    commodities_sorted = sorted(list(jaccard_distance.keys()), key=lambda commodity: -jaccard_distance[commodity])
-    scores_sorted = sorted(list(jaccard_distance.values()), reverse=True)
+def best_n_results(jaccard_index, n):
+    commodities_sorted = sorted(list(jaccard_index.keys()), key=lambda commodity: -jaccard_index[commodity])
+    scores_sorted = sorted(list(jaccard_index.values()), reverse=True)
     return commodities_sorted[:n], scores_sorted[:n]
 
 
