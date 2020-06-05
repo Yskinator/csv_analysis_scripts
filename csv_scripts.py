@@ -67,6 +67,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
         #Get ALL top_category files minus the ones we checked before
+        print("Low Jaccard score, checking other categories.")
         tcs = set(commodities_by_tc.keys()) - set(tcs)
         commodities = {}
         for tc in tcs:
