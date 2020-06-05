@@ -59,20 +59,21 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
-    commodities = []
+    commodities = {}
     for tc in tcs:
-        commodities += commodities_by_tc[tc]
+        commodities.update(commodities_by_tc[tc])
     results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
         #Get ALL top_category files minus the ones we checked before
-        tcs = list(commodities_by_tc.keys()) - tcs
-        commodities = []
+        tcs = set(commodities_by_tc.keys()) - set(tcs)
+        commodities = {}
         for tc in tcs:
-            commodities += commodities_by_tc[tc]
+            commodities.update(commodities_by_tc[tc])
         more_results, more_scores = most_matching_words(desc, commodities, limit=1, brands=brands)
-        jaccard_scores_dict_all_results = dict(zip(results, scores)).update(dict(zip(more_results, more_scores)))
+        #{**x, **y} merges two dictionaries
+        jaccard_scores_dict_all_results = {**dict(zip(results, scores)), **dict(zip(more_results, more_scores))}
         results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
 
     if len(results) == 1:
