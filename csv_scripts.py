@@ -51,18 +51,19 @@ def get_commodities_for_top_categories(top_categories):
             for row in r:
                 if row["Commodity Name"] in commodities:
                     print("Duplicate commodity: " + row["Commodity Name"])
-                commodities[row["Commodity Name"]] = row["Commodity"]
+                commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"])}
     return commodities
 
 def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[]):
-    desc = row["Description"]
+    desc = to_base_word_set(row["Description"])
+    brands = set(brands)
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
     tcs = filter(None, tc_string.split(";"))
     commodities = {}
     for tc in tcs:
         commodities.update(commodities_by_tc[tc])
-    results, scores = most_matching_words(desc, list(commodities), limit=1, brands=brands)
+    results, scores = most_matching_words(desc, list(commodities), sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
@@ -72,7 +73,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
         commodities = {}
         for tc in tcs:
             commodities.update(commodities_by_tc[tc])
-        more_results, more_scores = most_matching_words(desc, commodities, limit=1, brands=brands)
+        more_results, more_scores = most_matching_words(desc, list(commodities), sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
         #{**x, **y} merges two dictionaries
         jaccard_scores_dict_all_results = {**dict(zip(results, scores)), **dict(zip(more_results, more_scores))}
         results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
@@ -81,14 +82,15 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
         res = results[0]
         sc = round(scores[0], 2)
         r_string = res
-        commodity_codes = commodities[res]
+        print(res)
+        commodity_codes = commodities[res]["Commodity Code"]
     else:
         r_string = ""
         commodity_codes = ""
         commodities["NOT FOUND"] = ""
         for res in results:
             r_string += res + ";"
-            commodity_codes += commodities[res] + ";"
+            commodity_codes += commodities[res]["Commodity Code"] + ";"
             sc = scores
 
     row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
@@ -104,36 +106,38 @@ def get_brands():
                 brands.append(row["Brand"].lower())
     return brands
 
-def most_matching_words(description, commodities, limit, brands):
+def to_base_word_set(string):
+    words = re.findall(r"[\w]+", string)
+    base_words = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in words]
+    return set(base_words)
+
+def most_matching_words(words_to_match, sentences_to_match_to, sentences_preprocessed, number_of_results, words_to_exclude):
     '''
-    Function to calculate Jaccard distance between individual words
+    Function to calculate Jaccard distance between individual words.
+    Preprocess words_to_match and sentences_preprocessed with to_base_word_set().
+    sentences_preprocessed should be a {string: {"Preprocessed": to_base_word_set(string)}} dictionary.
     INPUTS:
-     - description:
-     - commodities
-     - limit
-     - brands
+     - words_to_match:
+     - sentences_to_match_to
+     - sentences_preprocessed
+     - number_of_results
+     - words_to_exclude
     OUTPUTS:
-     - commodities_sorted[:limit]
+     - matches_sorted[:limit]
      - scores_sorted[:limit]
     '''
     jaccard_index = {}
     try:
-        for c in commodities:
-            c_list = re.findall(r"[\w]+", c)
-            c_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in c_list]
-            #c_list = [re.sub('\er$', '', w.lower().rstrip("s")) for w in c_list]
-            d_list = re.findall(r"[\w]+", description)
-            d_list = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in d_list]
-            #d_list = [re.sub('\er$', '', w.lower().rstrip("s")) for w in d_list]
-            #Remove the brand names from the description
-            d_list = list(set(d_list) - set(brands))
-            intersection = len(set(c_list).intersection(set(d_list)))
-            jaccard_index[c] = intersection / (len(c_list) + len(d_list) - intersection)
-        commodities_sorted, scores_sorted = best_n_results(jaccard_index, limit)
+        for match_candidate in sentences_to_match_to:
+            preprocessed_candidate = sentences_preprocessed[match_candidate]["Preprocessed"]
+            words_to_match -= words_to_exclude
+            intersection = len(preprocessed_candidate.intersection(words_to_match))
+            jaccard_index[match_candidate] = intersection / (len(preprocessed_candidate) + len(words_to_match) - intersection)
+        matches_sorted, scores_sorted = best_n_results(jaccard_index, number_of_results)
     except:
-        commodities_sorted = ["NOT FOUND" for i in range(limit)]
-        scores_sorted = [0 for i in range(limit)]
-    return commodities_sorted[:limit], scores_sorted[:limit]
+        matches_sorted = ["NOT FOUND" for i in range(number_of_results)]
+        scores_sorted = [0 for i in range(number_of_results)]
+    return matches_sorted[:number_of_results], scores_sorted[:number_of_results]
 
 def best_n_results(jaccard_index, n):
     commodities_sorted = sorted(list(jaccard_index.keys()), key=lambda commodity: -jaccard_index[commodity])
