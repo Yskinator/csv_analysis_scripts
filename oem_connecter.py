@@ -4,7 +4,7 @@ from collections import defaultdict
 def generate_dict(fqmo, kalumbila):
     oem_dict = {}
     oem_dict = update_oem_dict("FQMO", oem_dict, fqmo)
-    oem_dict = update_oem_dict("Kalumbila", oem_dict, fqmo)
+    oem_dict = update_oem_dict("Kalumbila", oem_dict, kalumbila)
     return oem_dict
 
 def update_oem_dict(site, oem_dict, rows):
