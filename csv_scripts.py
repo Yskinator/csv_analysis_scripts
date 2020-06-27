@@ -63,7 +63,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     commodities = {}
     for tc in tcs:
         commodities.update(commodities_by_tc[tc])
-    results, scores = most_matching_words(desc, list(commodities), sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
+    results, scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
@@ -73,7 +73,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
         commodities = {}
         for tc in tcs:
             commodities.update(commodities_by_tc[tc])
-        more_results, more_scores = most_matching_words(desc, list(commodities), sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
+        more_results, more_scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
         #{**x, **y} merges two dictionaries
         jaccard_scores_dict_all_results = {**dict(zip(results, scores)), **dict(zip(more_results, more_scores))}
         results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
@@ -111,7 +111,7 @@ def to_base_word_set(string):
     base_words = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in words]
     return set(base_words)
 
-def most_matching_words(words_to_match, sentences_to_match_to, sentences_preprocessed, number_of_results, words_to_exclude):
+def most_matching_words(words_to_match, sentences_preprocessed, number_of_results, words_to_exclude):
     '''
     Function to calculate Jaccard distance between individual words.
     Preprocess words_to_match and sentences_preprocessed with to_base_word_set().
@@ -126,9 +126,10 @@ def most_matching_words(words_to_match, sentences_to_match_to, sentences_preproc
      - matches_sorted[:limit]
      - scores_sorted[:limit]
     '''
+    print("Matching " + str(words_to_match))
     jaccard_index = {}
     try:
-        for match_candidate in sentences_to_match_to:
+        for match_candidate in sentences_preprocessed:
             preprocessed_candidate = sentences_preprocessed[match_candidate]["Preprocessed"]
             words_to_match -= words_to_exclude
             intersection = len(preprocessed_candidate.intersection(words_to_match))
@@ -137,6 +138,7 @@ def most_matching_words(words_to_match, sentences_to_match_to, sentences_preproc
     except:
         matches_sorted = ["NOT FOUND" for i in range(number_of_results)]
         scores_sorted = [0 for i in range(number_of_results)]
+    print("Finished " + str(words_to_match))
     return matches_sorted[:number_of_results], scores_sorted[:number_of_results]
 
 def best_n_results(jaccard_index, n):
