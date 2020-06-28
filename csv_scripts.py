@@ -63,7 +63,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     commodities = {}
     for tc in tcs:
         commodities.update(commodities_by_tc[tc])
-    results, scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
+    results, scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=10, words_to_exclude=brands)
 
     #RE-RUN MATCHING IF LOW JACCARD SCORES
     if scores[0] < jaccard_threshold:
@@ -73,27 +73,30 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
         commodities = {}
         for tc in tcs:
             commodities.update(commodities_by_tc[tc])
-        more_results, more_scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=1, words_to_exclude=brands)
+        more_results, more_scores = most_matching_words(desc, sentences_preprocessed=commodities, number_of_results=10, words_to_exclude=brands)
         #{**x, **y} merges two dictionaries
         jaccard_scores_dict_all_results = {**dict(zip(results, scores)), **dict(zip(more_results, more_scores))}
-        results, scores = best_n_results(jaccard_scores_dict_all_results, n=1)
+        results, scores = best_n_results(jaccard_scores_dict_all_results, n=10)
 
-    if len(results) == 1:
-        res = results[0]
-        sc = round(scores[0], 2)
-        r_string = res
-        print(res)
-        commodity_codes = commodities[res]["Commodity Code"]
-    else:
-        r_string = ""
-        commodity_codes = ""
-        commodities["NOT FOUND"] = ""
-        for res in results:
-            r_string += res + ";"
-            commodity_codes += commodities[res]["Commodity Code"] + ";"
-            sc = scores
+    commodities["NOT FOUND"] = ""
+    for i, (result, score) in enumerate(zip(results,scores)):
+        row.update({"Commodity {}".format(i): result, "Commodity Code {}".format(i): commodities[result]["Commodity Code"], "Jaccard {}".format(i): score})
+    #if len(results) == 1:
+    #    res = results[0]
+    #    sc = round(scores[0], 2)
+    #    r_string = res
+    #    print(res)
+    #    commodity_codes = commodities[res]["Commodity Code"]
+    #else:
+    #    r_string = ""
+    #    commodity_codes = ""
+    #    commodities["NOT FOUND"] = ""
+    #    for res in results:
+    #        r_string += res + ";"
+    #        commodity_codes += commodities[res]["Commodity Code"] + ";"
+    #        sc = scores
 
-    row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
+    #row.update({"Commodity": r_string, "Commodity Code": commodity_codes, "Jaccard": sc})
     print("Row " + row["id"] + ", commodities found.")
     return row
 
@@ -255,13 +258,18 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         ids = filter(None, row["id"].split(";"))
         for i in ids:
             print("Updating row id: " + i)
-            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"], "Jaccard": row["Jaccard"]})
+            for j in range(10):
+                stocks[int(i)].update({"Commodity Code {}".format(j): row["Commodity Code {}".format(j)], "Commodity {}".format(j): row["Commodity {}".format(j)], "Jaccard {}".format(j): row["Jaccard {}".format(j)]})
     rows = []
     ids = list(stocks.keys())
     ids.sort()
     for i in ids:
         rows.append(stocks[i])
-    fieldnames = ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard"]
+    fieldnames = ["", "id", "language", "text", "Brand"]
+    for i in range(10):
+        fieldnames.append("Commodity {}".format(i))
+        fieldnames.append("Commodity Code {}".format(i))
+        fieldnames.append("Jaccard {}".format(i))
     return (rows, fieldnames)
 
 def remove_temp_files():
