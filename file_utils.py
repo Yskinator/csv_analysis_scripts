@@ -7,9 +7,9 @@ def save_csv(filename, rows, mode = "w", fieldnames = []):
        exists = True
     with open(filename, mode) as  fo:
         if fieldnames == []:
-            w = csv.DictWriter(fo, fieldnames = list(rows[0].keys()))
+            w = csv.DictWriter(fo, fieldnames = list(rows[0].keys()), extrasaction='ignore')
         else:
-            w = csv.DictWriter(fo, fieldnames = fieldnames)
+            w = csv.DictWriter(fo, fieldnames = fieldnames, extrasaction='ignore')
         if not exists:
             w.writeheader()
         for r in rows:
