@@ -82,7 +82,6 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
         res = results[0]
         sc = round(scores[0], 2)
         r_string = res
-        print(res)
         commodity_codes = commodities[res]["Commodity Code"]
     else:
         r_string = ""
@@ -117,8 +116,7 @@ def most_matching_words(words_to_match, sentences_preprocessed, number_of_result
     Preprocess words_to_match and sentences_preprocessed with to_base_word_set().
     sentences_preprocessed should be a {string: {"Preprocessed": to_base_word_set(string)}} dictionary.
     INPUTS:
-     - words_to_match:
-     - sentences_to_match_to
+     - words_to_match
      - sentences_preprocessed
      - number_of_results
      - words_to_exclude
