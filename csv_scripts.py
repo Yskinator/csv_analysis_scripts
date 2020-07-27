@@ -4,6 +4,7 @@ import csv
 import copy
 import concurrent.futures
 import regex as re
+import pandas
 # if "LOCAL" in os.environ:
 import file_utils
 import top_category_matcher
@@ -280,6 +281,13 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
     return (rows, fieldnames)
 
+def add_commodities_to_dataframe(df):
+    input_rows = df.to_dict("records")
+    output_rows, fieldnames = add_commodities_to_stocks(input_rows)
+    df_out = pandas.DataFrame(output_rows)
+    return df_out
+
+
 def generate_brand_counts_csv():
     if not os.path.isfile("brand_counts.csv"):
         stock_master = file_utils.read_csv("combined_stock_master_withbrands.csv")
@@ -312,8 +320,11 @@ if __name__ == "__main__":
     else:
         top_categories_to_check_count = 100
 
-    rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count)
-    file_utils.save_csv(sys.argv[1].split(".csv")[0]+"_and_commodities.csv", rows, fieldnames=fieldnames)
+    stock_master = pandas.DataFrame(stock_master)
+    df = add_commodities_to_dataframe(stock_master)
+    print(df)
+    #rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count)
+    #file_utils.save_csv(sys.argv[1].split(".csv")[0]+"_and_commodities.csv", rows, fieldnames=fieldnames)
 
     etime = time.time()
     ttime = etime-stime
