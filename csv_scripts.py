@@ -47,12 +47,11 @@ def get_commodities_for_top_categories(top_categories):
         List of commodities in the given top categories."""
     commodities = {}
     for top_cat in top_categories:
-        with open("top_category_files/" + top_cat + ".csv") as f:
-            r = csv.DictReader(f)
-            for row in r:
-                if row["Commodity Name"] in commodities:
-                    print("Duplicate commodity: " + row["Commodity Name"])
-                commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"])}
+        rows = file_utils.read_csv("top_category_files/" + top_cat + ".csv")
+        for row in rows:
+            if row["Commodity Name"] in commodities:
+                print("Duplicate commodity: " + row["Commodity Name"])
+            commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"])}
     return commodities
 
 def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[]):
@@ -99,11 +98,10 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
 
 def get_brands():
     brands = []
-    with open('brand_counts.csv') as f:
-        r = csv.DictReader(f)
-        for row in r:
-            if row["Brand"] != "":
-                brands.append(row["Brand"].lower())
+    rows = file_utils.read_csv('brand_counts.csv')
+    for row in rows:
+        if row["Brand"] != "":
+            brands.append(row["Brand"].lower())
     return brands
 
 def to_base_word_set(string):
@@ -147,48 +145,46 @@ def best_n_results(jaccard_index, n):
 
 
 def generate_top_category_files(column_name):
-    if os.path.isdir("top_category_files/"):
+    if file_utils.folder_exists("top_category_files/"):
         print("top_category_files/ directory already exists")
         return
-    os.mkdir("top_category_files")
-    with open('unspsc_codes_v3.csv') as f:
-        r = csv.DictReader(f)
-        tcs = {}
-        for row in r:
-            if row[column_name] not in tcs:
-                tcs[row[column_name]] = []
-            tcs[row[column_name]].append(row)
-        for tc in tcs:
-            filename = "top_category_files/" + tc + ".csv"
-            print("Saving " + filename)
-            file_utils.save_csv(filename, tcs[tc])
+    file_utils.mkdir("top_category_files")
+    rows = file_utils.read_csv('unspsc_codes_v3.csv')
+    tcs = {}
+    for row in rows:
+        if row[column_name] not in tcs:
+            tcs[row[column_name]] = []
+        tcs[row[column_name]].append(row)
+    for tc in tcs:
+        filename = "top_category_files/" + tc + ".csv"
+        print("Saving " + filename)
+        file_utils.save_csv(filename, tcs[tc])
 
 def top_category_to_string(top_category_name):
     segment_names = []
     family_names = []
     class_names = []
     commodity_names = []
-    with open("top_category_files/" + top_category_name + ".csv") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            seg = row["Segment Name"]
-            fam = row["Family Name"]
-            cl = row["Class Name"]
-            com = row["Commodity Name"]
-            if not seg in segment_names:
-                segment_names.append(seg)
-            if not fam in family_names:
-                family_names.append(fam)
-            if not cl in class_names:
-                class_names.append(cl)
-            if not com in commodity_names:
-                commodity_names.append(com)
+    rows = file_utils.read_csv("top_category_files/" + top_category_name + ".csv")
+    for row in rows:
+        seg = row["Segment Name"]
+        fam = row["Family Name"]
+        cl = row["Class Name"]
+        com = row["Commodity Name"]
+        if not seg in segment_names:
+            segment_names.append(seg)
+        if not fam in family_names:
+            family_names.append(fam)
+        if not cl in class_names:
+            class_names.append(cl)
+        if not com in commodity_names:
+            commodity_names.append(com)
     tc_str = str(segment_names) + " " + str(family_names) + " " + str(class_names) + " " + str(commodity_names)
     tc_str = tc_str.replace("[", "").replace("]", "").replace("'", "").replace(",", "").lower()
     return tc_str
 
 def generate_top_category_string_csv():
-    if os.path.isfile("top_category_strings.csv"):
+    if file_utils.file_exists("top_category_strings.csv"):
         print("top_category_strings.csv file already exists")
         return
     tcs = file_utils.top_category_names()
@@ -289,7 +285,7 @@ def add_commodities_to_dataframe(df):
 
 
 def generate_brand_counts_csv():
-    if not os.path.isfile("brand_counts.csv"):
+    if not file_utils.file_exists("brand_counts.csv"):
         stock_master = file_utils.read_csv("combined_stock_master_withbrands.csv")
         brands = count_field(stock_master, "Brand")
         file_utils.save_csv("brand_counts.csv", brands, fieldnames=["Brand", "Count"])
