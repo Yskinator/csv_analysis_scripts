@@ -1,11 +1,21 @@
 import os
 import csv
+import json
+
+def save_json(filename, data, mode= "w"):
+    with open(filename, mode, encoding="utf-8-sig") as f:
+        json.dump(data, f)
+
+def load_json(filename):
+    with open(filename, encoding="utf-8-sig") as f:
+        data = json.load(f)
+    return data
 
 def save_csv(filename, rows, mode = "w", fieldnames = []):
     exists = False
     if os.path.isfile(filename) and mode == "a":
        exists = True
-    with open(filename, mode) as  fo:
+    with open(filename, mode, encoding="utf-8-sig") as  fo:
         if fieldnames == []:
             w = csv.DictWriter(fo, fieldnames = list(rows[0].keys()))
         else:
