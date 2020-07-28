@@ -2,6 +2,7 @@ import file_utils
 import csv_scripts
 from collections import defaultdict
 import concurrent.futures
+import pandas
 import sys
 import time
 
@@ -139,9 +140,30 @@ def match_oems(site_rows, matches_json=""):
         for i in range(10):
             fieldnames.append("{} Description Match {}".format(site, str(i)))
             fieldnames.append("{} Description Match {} Score".format(site, str(i)))
-    print(fieldnames)
+    #print(fieldnames)
 
     return (rows, fieldnames)
+
+def match_oems_dataframe(site_to_dataframe_dict, matches_json=""):
+    '''
+    Generates a dataframe of matched sites.
+    site_to_dataframe_dict should be something like:
+    {"SQMO": sqmo_rows, "Kalumbila": kalumbila_rows}
+    matches_json is an optional parameter for saving and loading slow to generate
+    description based matches.
+    INPUTS:
+     - site_to_dataframe_dict
+     - matches_json
+    OUTPUTS:
+     - matches_df
+    '''
+    site_rows = {}
+    for site, df in site_to_dataframe_dict.items():
+        site_rows[site] = df.to_dict("records")
+    matches_rows, _ = match_oems(site_rows, matches_json)
+    matches_df = pandas.DataFrame(matches_rows)
+    return matches_df
+
 
 if __name__=="__main__":
     if len(sys.argv) < 4:
@@ -161,6 +183,9 @@ if __name__=="__main__":
         matches_json = sys.argv[4]
     fqmo_rows = file_utils.read_csv(sqmo_file)
     kalumbila_rows = file_utils.read_csv(kalumbila_file)
-    site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
-    result_rows, fieldnames = match_oems(site_rows, matches_json)
-    file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
+    #site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
+    site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
+    matches_df = match_oems_dataframe(site_to_dataframe_dict, matches_json)
+    print(matches_df.head(n=10))
+    #result_rows, fieldnames = match_oems(site_rows, matches_json)
+    #file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
