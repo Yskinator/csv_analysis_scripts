@@ -24,7 +24,7 @@ def save_json(filename, data, mode= "w"):
     with open(filename, mode, encoding="utf-8-sig") as f:
         json.dump(data, f)
 
-def load_json(filename):
+def read_json(filename):
     filename = add_path(filename)
     with open(filename, encoding="utf-8-sig") as f:
         data = json.load(f)
