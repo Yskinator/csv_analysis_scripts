@@ -2,6 +2,8 @@ import file_utils
 import csv_scripts
 from collections import defaultdict
 import concurrent.futures
+import sys
+import time
 
 def generate_dict(site_rows):
     oem_dict = {}
@@ -108,18 +110,19 @@ def number(rows, start):
         num += 1
     return rows, num
 
-def match_oems():
-    fqmo_file = "FQMO.csv"
-    kalumbila_file = "Kalumbila.csv"
-    site_rows = {}
-    site_rows["FQMO"], num = number(file_utils.read_csv(fqmo_file), start = 0)
-    site_rows["Kalumbila"], num = number(file_utils.read_csv(kalumbila_file), start = num)
+def match_oems(site_rows, matches_json=""):
+    site_rows["FQMO"], num = number(site_rows["FQMO"], start = 0)
+    site_rows["Kalumbila"], num = number(site_rows["Kalumbila"], start = num)
     oem_dict = generate_dict(site_rows)
     sites = site_rows.keys()
     rows = base_rows_from(site_rows)
     rows = match_by_oem_code(oem_dict, rows)
-    desc_matches = match_by_description(oem_dict, site_rows)
-    file_utils.save_json("Description_Matches.json", desc_matches)
+    if matches_json and file_utils.file_exists(matches_json):
+        desc_matches = file_utils.read_json(matches_json)
+    else:
+        desc_matches = match_by_description(oem_dict, site_rows)
+        if matches_json:
+            file_utils.save_json(matches_json, desc_matches)
     for row in rows:
         for site in site_rows:
             if site in row:
@@ -138,7 +141,26 @@ def match_oems():
             fieldnames.append("{} Description Match {} Score".format(site, str(i)))
     print(fieldnames)
 
-    file_utils.save_csv("OEM_Match_Results.csv", rows, fieldnames = fieldnames)
+    return (rows, fieldnames)
 
 if __name__=="__main__":
-    match_oems()
+    if len(sys.argv) < 4:
+        print("""
+        Script to match similar rows in data from different sites.
+
+        Use: $ python oem_connecter.py site1.csv site2.csv ouput.csv (optional)match_data.json
+
+        Generating the description matches in match_data is by far the slowest part, so save it when expecting to re-use!
+        """)
+        sys.exit()
+    sqmo_file = sys.argv[1] #"FQMO.csv"
+    kalumbila_file = sys.argv[2] #"Kalumbila.csv"
+    output_file = sys.argv[3] #"OEM_Match_Results.csv"
+    matches_json = ""
+    if len(sys.argv) == 5:
+        matches_json = sys.argv[4]
+    fqmo_rows = file_utils.read_csv(sqmo_file)
+    kalumbila_rows = file_utils.read_csv(kalumbila_file)
+    site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
+    result_rows, fieldnames = match_oems(site_rows, matches_json)
+    file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
