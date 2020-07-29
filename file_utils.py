@@ -16,7 +16,7 @@ def file_exists(filename):
     return os.path.isfile(filename)
 
 def mkdir(foldername):
-    foldername = add_path(fldername)
+    foldername = add_path(foldername)
     os.mkdir(foldername)
 
 def save_json(filename, data, mode= "w"):
