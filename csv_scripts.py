@@ -26,7 +26,7 @@ def match_commodities(stock_with_top_categories, jaccard_threshold, parallel=Tru
     """
     brands = get_brands()
     #Fetches all the allowed top categories.
-    tcs = top_category_matcher.excluded_top_categories(return_excluded=False)
+    tcs = top_category_matcher.non_excluded_top_categories()
     commodities = {tc: get_commodities_for_top_category(tc) for tc in tcs}
     if parallel:
         with concurrent.futures.ProcessPoolExecutor() as executor:
