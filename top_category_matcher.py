@@ -205,7 +205,7 @@ def match_preprocessed_to_top_categories(preprocessed_stocks, top_category_strin
     The "Top Categories" key is mapped to a string with the relevant tc:s separated by semicolons ';'.
     """
     if len(preprocessed_stocks) > 1000:
-        print("Large job detected. Matching rows to relevant categories..") 
+        print("Large job detected. Matching rows to relevant categories..")
         brands_tcs = brands_to_top_categories(top_category_strings, brand_counts, preprocessed_stocks)
         stock_with_top_categories = embedding_match(top_category_strings, brands_tcs, preprocessed_stocks, tc_to_check_count = tc_to_check_count)
     else:

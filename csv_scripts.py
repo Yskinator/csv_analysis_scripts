@@ -1,7 +1,6 @@
 import os
 import sys
 import csv
-import copy
 import concurrent.futures
 import regex as re
 # if "LOCAL" in os.environ:
@@ -271,7 +270,8 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         ids = filter(None, row["id"].split(";"))
         for i in ids:
             print("Updating row id: " + i)
-            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"], "Jaccard": row["Jaccard"]})
+            # Use copy here to avoid modifying the input
+            stocks[int(i)] = stocks[int(i)].copy().update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"], "Jaccard": row["Jaccard"]})
     rows = []
     ids = list(stocks.keys())
     ids.sort()
@@ -287,7 +287,6 @@ def remove_temp_files():
 
 def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold = 0.3):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
-    stock_master = copy.deepcopy(stock_master) # Protect input from side effects, parallelization makes changes in-place
     generate_constant_csvs(level)
     preprocessed = generate_preprocessed_stocks_csv(stock_master)
     brand_counts = count_field(stock_master, "Brand")
