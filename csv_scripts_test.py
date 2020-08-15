@@ -22,6 +22,12 @@ class AddCommoditiesToStocksTestCase(unittest.TestCase):
         output = add_commodities_to_stocks(stock)
         assert stock == stock_copy
 
+    def test_output_contains_all_input_keys(self):
+        """All keys in input dictionaries should also exist in output dictionaries."""
+        stock = [{"text": "circuit", "id": "1", "Brand": ""}]
+        output = add_commodities_to_stocks(stock)
+        assert all([key in output[0][0] for key in stock[0]])
+
 class MatchCommoditiesTestCase(unittest.TestCase):
     """Test cases for match_commodities."""
 
@@ -36,14 +42,16 @@ class MatchCommoditiesTestCase(unittest.TestCase):
     def test_output_contains_all_input_keys(self):
         """All the keys in the input dictionaries should also exist in the output dictionaries."""
         stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
-        output = match_commodities(stock, jaccard_threshold=0.3)
-        assert all([key in output[0] for key in stock[0]])
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel)
+            assert all([key in output[0] for key in stock[0]])
 
     def test_output_contains_extra_keys(self):
         """Output should contain keys Commodity, Commodity Code and Jaccard."""
         stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
-        output = match_commodities(stock, jaccard_threshold=0.3)
-        assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel)
+            assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
 
 if __name__ == "__main__":
     unittest.main()
