@@ -192,6 +192,18 @@ def all_categories(top_category_strings, preprocessed_stocks):
     return rows
 
 def match_preprocessed_to_top_categories(preprocessed_stocks, top_category_strings, brand_counts, tc_to_check_count = 100):
+    """Match preprocessed stocks to top categories.
+
+    Arguments:
+    preprocessed_stocks -- A list of dictionaries representing preprocessed stocks. Each dict has keys "Description", "id" and "Brands".
+    top_category_strings -- A list of dictionaries mapping each top category name to a concatenated string of all sub-categories
+    brand_counts -- A list of dictionaries mapping each brand name to amount of stocks in which that brand is mentioned
+    tc_to_check_count (int) -- When using embedding_match, how many top_categories to return for each stock item
+
+    Returns:
+    List of dictionaries, each with the same keys as preprocessed_stocks and an additional key "Top Categories".
+    The "Top Categories" key is mapped to a string with the relevant tc:s separated by semicolons ';'.
+    """
     if len(preprocessed_stocks) > 1000:
         print("Large job detected. Matching rows to relevant categories..") 
         brands_tcs = brands_to_top_categories(top_category_strings, brand_counts, preprocessed_stocks)
