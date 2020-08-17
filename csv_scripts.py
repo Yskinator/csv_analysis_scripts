@@ -205,7 +205,7 @@ def generate_top_category_string_csv():
         rows.append(row)
     file_utils.save_csv("top_category_strings.csv", rows)
 
-def generate_preprocessed_stocks_csv(stock_master):
+def generate_preprocessed_stocks(stock_master):
     """Preprocess stocks from stock_master, combining rows with identical descriptions reversibly.
     If rows with ids 1 and 2 have the same description, combines them into one row with id "1;2".
 
@@ -215,7 +215,7 @@ def generate_preprocessed_stocks_csv(stock_master):
     Returns:
     A list of dictionaries, each with keys "Description", "id", and "Brands".
     """
-    descriptions = {}
+    ids = {}
     brands = {}
     forbidden_characters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     for i, row in enumerate(stock_master):
@@ -227,17 +227,17 @@ def generate_preprocessed_stocks_csv(stock_master):
                 d += s + " "
         if d == "":
             d = d_orig
-        if not d in descriptions:
-            descriptions[d] = [row["id"]]
+        if not d in ids:
+            ids[d] = [row["id"]]
             brands[d] = [row["Brand"]]
         else:
-            descriptions[d] = descriptions[d] + [row["id"]]
+            ids[d] = ids[d] + [row["id"]]
             brands[d] = brands[d] + [row["Brand"]]
     rows = []
-    for d in descriptions:
+    for d in ids:
         row_numbers = ""
         bs = ""
-        for rn in descriptions[d]:
+        for rn in ids[d]:
             row_numbers += str(rn) + ";"
         for b in brands[d]:
             bs += str(b) + ";"
@@ -287,7 +287,7 @@ def remove_temp_files():
 def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold = 0.3, parallel=True):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     generate_constant_csvs(level)
-    preprocessed = generate_preprocessed_stocks_csv(stock_master)
+    preprocessed = generate_preprocessed_stocks(stock_master)
     brand_counts = count_field(stock_master, "Brand")
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
     stock_with_top_categories = top_category_matcher.match_preprocessed_to_top_categories(preprocessed, top_category_strings, brand_counts, tc_to_check_count = tc_to_check_count)
