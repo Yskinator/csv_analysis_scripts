@@ -94,36 +94,34 @@ def load_top_categories(rows, nlp):
         top_categories.append(top_category)
     return (commodities, top_categories)
 
-def excluded_segments(return_excluded=True):
-    exs = []
-    rows = file_utils.read_csv("excluded_segments.csv")
-    for row in rows:
-        # print('row = ', row)
-        if return_excluded:
-            if row["Remove?"] == "YES" or row["Remove?"] == "YES?":
-                exs.append(row["Segment Name"])
-        if not return_excluded:
-            if row["Remove?"] != "YES" or row["Remove?"] != "YES?":
-                exs.append(row["Segment Name"])
-    return exs
+def excluded_segments(rows):
+    """Given a list of dictionaries with keys "Segment Name" and "Remove?", produce list of Segment Names where Remove? equals "YES".
 
-def excluded_top_categories(return_excluded=True):
-    """If return_excluded is True, returns list of excluded top categories.
-    If return_excluded is False, returns list of non-excluded top categories.
-    This and excluded_segments should be renamed somehow."""
-    ex_segs = excluded_segments()
+    Arguments:
+    rows -- A list of dictionaries with keys "Segment Name" and "Remove?"
+
+    Returns:
+    A list of strings corresponding to Segment Names that are marked to be removed.
+    """
+    return [row["Segment Name"] for row in rows if row["Remove?"] in ("YES", "YES?")]
+
+def excluded_top_categories():
+    """Return excluded top categories, given a known collection of excluded segments."""
+    ex_segs = excluded_segments(file_utils.read_csv("excluded_segments.csv"))
     tcs = file_utils.top_category_names()
     ex_tcs = []
     for tc in tcs:
         rows = file_utils.read_csv("top_category_files/" + tc +".csv")
         #There can never be more than one segment in a top category -> check first row
-        if return_excluded:
-            if rows[0]["Segment Name"] in ex_segs:
-                ex_tcs.append(tc)
-        else:
-            if rows[0]["Segment Name"] not in ex_segs:
-                ex_tcs.append(tc)
+        if rows[0]["Segment Name"] in ex_segs:
+            ex_tcs.append(tc)
     return ex_tcs
+
+def non_excluded_top_categories():
+    """Return non-excluded top categories, given a known collection of excluded segments."""
+    excluded = excluded_top_categories()
+    tcs = file_utils.top_category_names()
+    return [tc for tc in tcs if tc not in excluded]
 
 def load_brand_top_categories(rows):
     """Load top_categories associated with a file."""
@@ -192,8 +190,20 @@ def all_categories(top_category_strings, preprocessed_stocks):
     return rows
 
 def match_preprocessed_to_top_categories(preprocessed_stocks, top_category_strings, brand_counts, tc_to_check_count = 100):
+    """Match preprocessed stocks to top categories.
+
+    Arguments:
+    preprocessed_stocks -- A list of dictionaries representing preprocessed stocks. Each dict has keys "Description", "id" and "Brands".
+    top_category_strings -- A list of dictionaries mapping each top category name to a concatenated string of all sub-categories
+    brand_counts -- A list of dictionaries mapping each brand name to amount of stocks in which that brand is mentioned
+    tc_to_check_count (int) -- When using embedding_match, how many top_categories to return for each stock item
+
+    Returns:
+    List of dictionaries, each with the same keys as preprocessed_stocks and an additional key "Top Categories".
+    The "Top Categories" key is mapped to a string with the relevant tc:s separated by semicolons ';'.
+    """
     if len(preprocessed_stocks) > 1000:
-        print("Large job detected. Matching rows to relevant categories..") 
+        print("Large job detected. Matching rows to relevant categories..")
         brands_tcs = brands_to_top_categories(top_category_strings, brand_counts, preprocessed_stocks)
         stock_with_top_categories = embedding_match(top_category_strings, brands_tcs, preprocessed_stocks, tc_to_check_count = tc_to_check_count)
     else:
