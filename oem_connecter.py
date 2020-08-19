@@ -5,6 +5,7 @@ import concurrent.futures
 import pandas
 import sys
 import time
+import copy
 
 def generate_dict(site_rows):
     oem_dict = {}
@@ -19,7 +20,7 @@ def update_oem_dict(site, oem_dict, rows):
             single_oem = oem_dict[oem_code]
         else:
             single_oem = {}
-        single_oem[site] = {"Description": row["Stock Description"], "Code": row["Stock Code"], "Item #": row["Item #"]}
+        single_oem[site] = {"Description": row["Stock Description"], "Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
         oem_dict[oem_code] = single_oem
     return oem_dict
 
@@ -29,7 +30,7 @@ def match_by_oem_code(oem_dict, rows):
         if oem_code in oem_dict:
             oem_matches = oem_dict[oem_code]
             for site, match in oem_matches.items():
-                row["{} OEM Code Match".format(site)] = match["Item #"]
+                row["{} OEM Code Match".format(site)] = match["Stock & Site"]
     return rows
 
 def base_rows_from(site_rows):
@@ -38,7 +39,7 @@ def base_rows_from(site_rows):
         for row in rows:
             base_row = {}
             base_row["Site"] = site
-            base_row["Item #"] = row["Item #"]
+            base_row["Stock & Site"] = row["Stock & Site"]
             base_row["OEM Code"] = row["OEM Field"]
             base_row["Stock Code"] = row["Stock Code"]
             base_row["Description"] = row["Stock Description"]
@@ -52,7 +53,7 @@ def preprocess_all(site_rows):
         desc_to_preprocessed = {}
         for row in rows:
             desc = row["Stock Description"]
-            relevant_data = {"Preprocessed": preprocess(desc), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Item #": row["Item #"]}
+            relevant_data = {"Preprocessed": preprocess(desc), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
             desc_to_preprocessed[desc] = relevant_data
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
@@ -90,7 +91,7 @@ def match_by_description(oem_dict, site_rows):
                 oem_code = row["OEM Field"]
                 if site not in oem_dict[oem_code] or oem_code == "ZZDELETED" or not oem_code:
                     row_jobs[site] = csv_scripts.most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, a_set)
-            jobs[row["Item #"]] = row_jobs
+            jobs[row["Stock & Site"]] = row_jobs
             #if count > 100:
             #    break
             #else:
@@ -100,8 +101,8 @@ def match_by_description(oem_dict, site_rows):
             results, scores = job #job.result()
             if str(item_no) not in desc_matches:
                 desc_matches[str(item_no)] = {}
-            #site_to_descs_preprocessed[site][results[0]]["Item #"]
-            desc_matches[str(item_no)][site] = {"Matches": [site_to_descs_preprocessed[site][result]["Item #"] for result in results], "Scores": [score for score in scores]}
+            #site_to_descs_preprocessed[site][results[0]]["Stock & Site"]
+            desc_matches[str(item_no)][site] = {"Matches": [site_to_descs_preprocessed[site][result]["Stock & Site"] for result in results], "Scores": [score for score in scores]}
     return desc_matches
 
 def number(rows, start):
@@ -112,80 +113,107 @@ def number(rows, start):
     return rows, num
 
 def match_oems(site_rows, matches_json=""):
-    site_rows["FQMO"], num = number(site_rows["FQMO"], start = 0)
-    site_rows["Kalumbila"], num = number(site_rows["Kalumbila"], start = num)
+    #num = 0
+    #for site in site_rows:
+    #    site_rows[site], num = number(site_rows[site], num)
     oem_dict = generate_dict(site_rows)
     sites = site_rows.keys()
     rows = base_rows_from(site_rows)
-    rows = match_by_oem_code(oem_dict, rows)
+    #rows = match_by_oem_code(oem_dict, rows)
     if matches_json and file_utils.file_exists(matches_json):
         desc_matches = file_utils.read_json(matches_json)
     else:
         desc_matches = match_by_description(oem_dict, site_rows)
         if matches_json:
             file_utils.save_json(matches_json, desc_matches)
+    final_rows = []
     for row in rows:
-        for site in site_rows:
-            if site in row:
-                row[site + " Score"] = 1.0
-        item_no = row["Item #"]
-        if str(item_no) in desc_matches:
-            for site, matches in desc_matches[item_no].items():
-                for i, (match, score) in enumerate(zip(matches["Matches"], matches["Scores"])):
-                    row["{} Description Match {}".format(site, str(i))] = match
-                    row["{} Description Match {} Score".format(site, str(i))] = score
-    fieldnames = ["Site", "Item #", "OEM Code", "Stock Code", "Description"]
-    for site in sorted(list(site_rows.keys())):
-        fieldnames.append("{} OEM Code Match".format(site))
-        for i in range(10):
-            fieldnames.append("{} Description Match {}".format(site, str(i)))
-            fieldnames.append("{} Description Match {} Score".format(site, str(i)))
+        item_no = str(row["Stock & Site"])
+        all_sites = set()
+        if item_no in desc_matches:
+            all_sites = all_sites | set(desc_matches[item_no])
+        if item_no in oem_dict:
+            all_sites = all_sites | set(desc_matches[item_no])
+        for site in all_sites:
+            if site == row["Site"]:
+                continue
+            site_row = copy.deepcopy(row)
+            site_row["Match Site"] = site
+            if item_no in oem_dict:
+                if site in oem_dict[item_no]:
+                    site_row["OEM Code Match"] = oem_dict[item_no][site]["Stock & Site"]
+            if item_no in desc_matches:
+                if site in desc_matches[item_no]:
+                    matches = desc_matches[item_no][site]
+                    for i, (match, score) in enumerate(zip(matches["Matches"], matches["Scores"])):
+                        site_row["Description Match {}".format(str(i))] = match 
+                        site_row["Description Match {} Score".format(str(i))] = score
+            final_rows.append(site_row)
+    fieldnames = ["Site", "Match Site", "Stock & Site", "OEM Code", "Stock Code", "Description", "OEM Code Match"]
+    for i in range(10):
+        fieldnames.append("Description Match {}".format(str(i)))
+        fieldnames.append("Description Match {} Score".format(str(i)))
     #print(fieldnames)
 
-    return (rows, fieldnames)
+    return (final_rows, fieldnames)
 
-def match_oems_dataframe(site_to_dataframe_dict, matches_json=""):
+def match_oems_dataframe(dataframe, matches_json=""):
     '''
     Generates a dataframe of matched sites.
-    site_to_dataframe_dict should be something like:
-    {"SQMO": sqmo_rows, "Kalumbila": kalumbila_rows}
     matches_json is an optional parameter for saving and loading slow to generate
     description based matches.
     INPUTS:
-     - site_to_dataframe_dict
+     - dataframe
      - matches_json
     OUTPUTS:
      - matches_df
     '''
-    site_rows = {}
-    for site, df in site_to_dataframe_dict.items():
-        site_rows[site] = df.to_dict("records")
+    rows = dataframe.to_dict("records")
+    site_rows = generate_site_to_rows_dict(rows)
     matches_rows, _ = match_oems(site_rows, matches_json)
     matches_df = pandas.DataFrame(matches_rows)
     return matches_df
 
+def generate_site_to_rows_dict(rows):
+    site_to_rows = {}
+    sites = []
+    for row in rows:
+        if row["Site"] not in site_to_rows:
+            site_to_rows[row["Site"]] = []
+        site_to_rows[row["Site"]].append(row)
+    return site_to_rows
 
 if __name__=="__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:#4:
         print("""
         Script to match similar rows in data from different sites.
 
-        Use: $ python oem_connecter.py site1.csv site2.csv ouput.csv (optional)match_data.json
+        Use: $ python oem_connecter.py sites.csv ouput.csv (optional)match_data.json
 
         Generating the description matches in match_data is by far the slowest part, so save it when expecting to re-use!
         """)
         sys.exit()
-    sqmo_file = sys.argv[1] #"FQMO.csv"
-    kalumbila_file = sys.argv[2] #"Kalumbila.csv"
-    output_file = sys.argv[3] #"OEM_Match_Results.csv"
+    #Use: $ python oem_connecter.py site1.csv site2.csv ouput.csv (optional)match_data.json
+    #sqmo_file = sys.argv[1] #"FQMO.csv"
+    #kalumbila_file = sys.argv[2] #"Kalumbila.csv"
+    stime = time.time()
+    sites_file = sys.argv[1]
+    output_file = sys.argv[2]#[3] #"OEM_Match_Results.csv"
     matches_json = ""
-    if len(sys.argv) == 5:
-        matches_json = sys.argv[4]
-    fqmo_rows = file_utils.read_csv(sqmo_file)
-    kalumbila_rows = file_utils.read_csv(kalumbila_file)
+    if len(sys.argv) == 4: #5:
+        matches_json = sys.argv[3]#[4]
+    #fqmo_rows = file_utils.read_csv(sqmo_file)
+    #kalumbila_rows = file_utils.read_csv(kalumbila_file)
+    sites_rows = file_utils.read_csv(sites_file)
+    #site_to_rows_dict = generate_site_to_rows_dict(sites_rows)
     #site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
-    site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
-    matches_df = match_oems_dataframe(site_to_dataframe_dict, matches_json)
+    #site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
+    #matches_df = match_oems_dataframe(site_to_dataframe_dict, matches_json)
+    matches_df = match_oems_dataframe(pandas.DataFrame(sites_rows))
     print(matches_df.head(n=10))
+    #print(result_rows[:10])
     #result_rows, fieldnames = match_oems(site_rows, matches_json)
     #file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
+    etime = time.time()
+    ttime = etime-stime
+    print('Time = ', ttime, 's')
