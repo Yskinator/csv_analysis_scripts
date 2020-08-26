@@ -261,7 +261,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
 
     return (final_rows, fieldnames)
 
-def match_sites_dataframe(new_dataframe, old_dataframe, matches_json=""):
+def match_sites_dataframe(dataframe, matches_json=""):
     '''
     Generates a dataframe of matched sites.
     matches_json is an optional parameter for saving and loading slow to generate
@@ -272,20 +272,38 @@ def match_sites_dataframe(new_dataframe, old_dataframe, matches_json=""):
     OUTPUTS:
      - matches_df
     '''
-    new_rows = new_dataframe.to_dict("records")
-    old_rows = old_dataframe.to_dict("records")
+    if "Match Site" in dataframe.columns:
+        ndf = dataframe[dataframe["Match Site"].map(str) == "-1"]
+        if ndf.empty:
+            #No new rows.
+            return pandas.DataFrame()
+        odf = dataframe[dataframe["Match Site"].map(str) != "-1"]
+        n = ndf.iloc[0]
+        ni = n.index[n!="-1"]
+        ndf = ndf.loc[:, ni]
+        o = odf.iloc[0]
+        oi = o.index[o!="-1"]
+        odf = odf.loc[:, oi]
+        new_rows = ndf.to_dict("records")
+        old_rows = odf.to_dict("records")
+    else:
+        new_rows = dataframe.to_dict("records")
+        old_rows = []
+    #print(ndf.head(n=10))
+    #print(odf.head(n=10))
     site_rows = generate_site_to_rows_dict(new_rows)
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     matches_rows, _ = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
     matches_df = pandas.DataFrame(matches_rows)
-    return matches_df_
+    return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
     if old:
         item_ids = []
         new_rows = []
         for row in rows:
+            row = copy.deepcopy(row)
             row["OEM Field"] = row["OEM Code"]
             row["Stock Description"] = row["Description"]
             item_id = row["Stock & Site"]
@@ -297,6 +315,7 @@ def generate_site_to_rows_dict(rows, old=False):
     site_to_rows = {}
     sites = []
     for row in rows:
+        row = copy.deepcopy(row)
         if row["Site"] not in site_to_rows:
             site_to_rows[row["Site"]] = []
         site_to_rows[row["Site"]].append(row)
@@ -333,14 +352,21 @@ if __name__=="__main__":
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
     #site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
-    #matches_df = match_sites_dataframe(site_to_dataframe_dict, matches_json)
-    #matches_df, fieldnames = match_sites_dataframe(pandas.DataFrame(sites_rows), pandas.DataFrame(old_rows))
-    #print(matches_df.head(n=10))
+    ndf = pandas.DataFrame(sites_rows)
+    odf = pandas.DataFrame(old_rows)
+    all_columns = ndf.columns.union(odf.columns)
+    ndf = ndf.reindex(columns = all_columns, fill_value="-1")
+    odf = odf.reindex(columns = all_columns, fill_value="-1")
+    df = pandas.concat([ndf, odf]).reset_index(drop=True)
+    #with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+    #    print(df)
+    matches_df = match_sites_dataframe(df)
+    print(matches_df.head(n=10))
     #result_rows = matches_df.to_dict("records")
     #print(result_rows[:10])
-    exclude_unchanged = False
-    result_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json, exclude_unchanged)
-    file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
+    #exclude_unchanged = False
+    #result_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json, exclude_unchanged)
+    #file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
     etime = time.time()
     ttime = etime-stime
     print('Time = ', ttime, 's')
