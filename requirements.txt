@@ -1,5 +1,4 @@
 wheel
-fuzzywuzzy[speedup]
 spacy
 thinc
 requests
