@@ -14,7 +14,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         text = req.params["description"] if "description" in req.params else ""
         rows = [{"Brand": brand, "id": "1", "text": text}]
         results = csv_scripts.add_commodities_to_stocks(rows)
-        return func.HttpResponse(json.dumps(results[0]))
     elif req.method == "POST":
         try:
             params = req.get_body().decode("utf-8").split("&")
@@ -27,14 +26,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # Add "\n"+str(e) when debugging for convenience
             return func.HttpResponse("The rows data parameter was malformatted or empty.", status_code=400)
         inputs = []
+        
         for i, row in enumerate(rows):
             inputs.append({"Brand": "", "id": str(i), "text": row})
         results = csv_scripts.add_commodities_to_stocks(inputs)
-        return func.HttpResponse(json.dumps(results[0]))
         #else:
         #    return func.HttpResponse("The POST request did not include a 'rows' data parameter.", status_code=400)
     else:
         return func.HttpResponse("Request method not supported.", status_code=405)
+    results = results[0]
+    for result in results:
+        result["Description"] = result.pop("text") # Rename text -> Description
+        result["Similarity"] = result.pop("Jaccard") # Rename Jaccard -> Similarity
+    return func.HttpResponse(json.dumps(results))
 
     # name = req.params.get('name')
     # if not name:
