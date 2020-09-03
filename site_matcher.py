@@ -264,7 +264,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             site_row["Old Row"] = "Yes"
                     for i, (match, score) in enumerate(zip(matches["Matches"], matches["Scores"])):
                         site_row["Description Match {}".format(str(i))] = match 
-                        site_row["Description Match {} Score".format(str(i))] = score
+                        site_row["Description Match {} Score".format(str(i))] = str(score)
             if not (site_row["Old Row"] == "Unchanged" and exclude_unchanged):
                 final_rows.append(site_row)
     fieldnames = ["Site", "Match Site", "Stock & Site", "OEM Code", "Stock Code", "Description", "OEM Code Match", "Old Row"]
