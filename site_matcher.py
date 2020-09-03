@@ -28,6 +28,9 @@ def generate_oem_dict(site_rows, old_site_rows):
 def update_oem_dict(site, oem_dict, rows):
     for row in rows:
         oem_code = row["OEM Field"]
+        if oem_code == "":
+            oem_dict[oem_code] = {}
+            continue
         if oem_code in oem_dict:
             single_oem = oem_dict[oem_code]
         else:
@@ -176,7 +179,7 @@ def combine_desc_matches(matches1, matches2, n):
 
 def top_n_matches(m1, m2, n):
     all_matches = list(zip(m1["Matches"], m1["Scores"])) + list(zip(m2["Matches"], m2["Scores"]))
-    all_matches = sorted(all_matches, key = lambda match: float(match[1]))
+    all_matches = sorted(all_matches, key = lambda match: float(match[1]), reverse = True)
     all_matches = list(OrderedDict.fromkeys(all_matches)) #Remove duplicates
     result_matches = {"Matches": [], "Scores": []}
     for match in all_matches[:n]:
@@ -282,20 +285,39 @@ def match_sites_dataframe(dataframe, matches_json=""):
     OUTPUTS:
      - matches_df
     '''
+
+    #Missing values should be represented by empty strings
+    dataframe = dataframe.fillna(value="")
+    
+    #Ensure we have the correct columns
+    dataframe = pandas.DataFrame(dataframe.to_dict("records"), columns=all_fieldnames())
+
+    #Fill any columns we just added with "-1" to mark it wasn't originally there
+    dataframe = dataframe.fillna(value="-1")
+
+    #Make sure everything in that dataframe is a string
+    dataframe = dataframe.applymap(lambda x: str(x))
+
+    #Remove extra whitespace
+    dataframe = dataframe.applymap(lambda x: x.strip() if type(x)==str else x)
+    
     if "Match Site" in dataframe.columns:
-        ndf = dataframe[dataframe["Match Site"].map(str) == "-1"]
+        ndf = dataframe[dataframe["Match Site"] == "-1"]
         if ndf.empty:
             #No new rows.
             return pandas.DataFrame()
-        odf = dataframe[dataframe["Match Site"].map(str) != "-1"]
-        n = ndf.iloc[0]
-        ni = n.index[n!="-1"]
-        ndf = ndf.loc[:, ni]
-        o = odf.iloc[0]
-        oi = o.index[o!="-1"]
-        odf = odf.loc[:, oi]
+        odf = dataframe[dataframe["Match Site"] != "-1"]
+        # n = ndf.iloc[0]
+        # ni = n.index[str(n).strip().replace(".0","") != "-1"]
+        # ndf = ndf.loc[:, ni]
+        if odf.empty:
+            old_rows = []
+        else:
+            # o = odf.iloc[0]
+            # oi = o.index[str(o).strip().replace(".0","") != "-1"]
+            # odf = odf.loc[:, oi]
+            old_rows = odf.to_dict("records")
         new_rows = ndf.to_dict("records")
-        old_rows = odf.to_dict("records")
     else:
         new_rows = dataframe.to_dict("records")
         old_rows = []
@@ -304,8 +326,14 @@ def match_sites_dataframe(dataframe, matches_json=""):
     site_rows = generate_site_to_rows_dict(new_rows)
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
+    #print('from match_sites_dataframe')
     matches_rows, _ = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
-    matches_df = pandas.DataFrame(matches_rows)
+    matches_df = pandas.DataFrame(matches_rows, columns=['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'OEM Code Match', 'Old Row', 'Site', 'Stock & Site', 'Stock Code'])
+    
+    #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
+    matches_df = matches_df.fillna(value="")
+    matches_df = matches_df[['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'OEM Code Match', 'Old Row', 'Site', 'Stock & Site', 'Stock Code']]
+    
     return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
