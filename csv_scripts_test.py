@@ -53,5 +53,12 @@ class MatchCommoditiesTestCase(unittest.TestCase):
             output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel)
             assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
 
+    def test_output_contains_all_extra_keys(self):
+        """Output should contain Commodity etc. for each result when multiple top results wanted."""
+        stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel, topn=2)
+            assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+
 if __name__ == "__main__":
     unittest.main()
