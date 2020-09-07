@@ -12,8 +12,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if req.method == "GET":
         brand = req.params["brand"] if "brand" in req.params else ""
         text = req.params["description"] if "description" in req.params else ""
+        try:
+            topn = int(req.params["topn"])
+        except:
+            topn = 1
         rows = [{"Brand": brand, "id": "1", "text": text}]
-        results = csv_scripts.add_commodities_to_stocks(rows)
+        results = csv_scripts.add_commodities_to_stocks(rows, topn=topn, parallel=False)
     elif req.method == "POST":
         try:
             params = req.get_body().decode("utf-8").split("&")
@@ -29,7 +33,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         for i, row in enumerate(rows):
             inputs.append({"Brand": "", "id": str(i), "text": row})
-        results = csv_scripts.add_commodities_to_stocks(inputs)
+        results = csv_scripts.add_commodities_to_stocks(inputs, parallel=False)
         #else:
         #    return func.HttpResponse("The POST request did not include a 'rows' data parameter.", status_code=400)
     else:
@@ -38,6 +42,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     for result in results:
         result["Description"] = result.pop("text") # Rename text -> Description
         result["Similarity"] = result.pop("Jaccard") # Rename Jaccard -> Similarity
+        for i in range(2,topn+1):
+            try:
+                result["Similarity "+str(i)] = result.pop("Jaccard "+str(i))
+            except Exception as e:
+                print(result)
+                print(e)
     return func.HttpResponse(json.dumps(results))
 
     # name = req.params.get('name')
