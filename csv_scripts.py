@@ -265,23 +265,44 @@ def count_field(stock_master, field):
     return rows
 
 def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
+    """Map the commodities from the compressed representation to the original.
+    E.g. commodity from row with id "1;2;3" in stocks_with_commodities will be added to rows 1, 2, and 3 in combined_stocks.
+    Both combined_stocks and stocks_with_commodities should be lists of dictionaries with an integer "id" field.
+
+    Arguments:
+    combined_stocks -- List of dictionaries representing the original data prior to compression
+    stocks_with_commodities -- List of dictionaries, compressed data with matched commodities
+
+    Returns:
+    A tuple with the rows (list of dictionaries) and fieldnames (list of strings)
+    """
     stocks = {}
     print("Generating dictionary from the original data..")
     for row in combined_stocks:
         print("Row id: " + row["id"])
         # Use copy here to avoid modifying the input
         stocks[int(row["id"])] = row.copy()
+    extra_keys = []
     for row in stocks_with_commodities:
         ids = filter(None, row["id"].split(";"))
         for i in ids:
             print("Updating row id: " + i)
-            stocks[int(i)].update({"Commodity Code": row["Commodity Code"], "Commodity": row["Commodity"], "Jaccard": row["Jaccard"]})
+            for key in row.keys():
+                if "Commodity" in key or "Jaccard" in key:
+                    stocks[int(i)].update({key: row[key]})
+                    extra_keys.append(key)
+    def digits(text):
+        num = ''.join(c for c in text if c.isdigit())
+        return int(num) if num else 1
+    extra_keys.sort(key=(lambda text: text.rstrip("0123456789 "))) # Sort alphabetically
+    extra_keys.sort(key=digits) # Sort by number
+    # After sorting, should look like [Commodity, Commodity Code, Jaccard, Commodity 2 ...]
     rows = []
     ids = list(stocks.keys())
     ids.sort()
     for i in ids:
         rows.append(stocks[i])
-    fieldnames = ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard"]
+    fieldnames = ["", "id", "language", "text", "Brand"]+extra_keys
     return (rows, fieldnames)
 
 def remove_temp_files():

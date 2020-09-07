@@ -2,7 +2,7 @@
 
 import unittest
 import copy
-from csv_scripts import match_commodities, add_commodities_to_stocks
+from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original
 
 class AddCommoditiesToStocksTestCase(unittest.TestCase):
     """Test cases for add_commodities_to_stocks."""
@@ -28,6 +28,12 @@ class AddCommoditiesToStocksTestCase(unittest.TestCase):
         output = add_commodities_to_stocks(stock)
         assert all([key in output[0][0] for key in stock[0]])
 
+    def test_output_contains_extra_columns(self):
+        """Output should contain extra columns when topn > 1."""
+        stock = [{"text": "circuit", "id": "1", "Brand": ""}]
+        output = add_commodities_to_stocks(stock, topn=3)
+        assert all([key in output[0][0] for key in ("Jaccard", "Jaccard 2", "Jaccard 3", "Commodity Code 2", "Commodity 3")])
+
 class MatchCommoditiesTestCase(unittest.TestCase):
     """Test cases for match_commodities."""
 
@@ -43,14 +49,14 @@ class MatchCommoditiesTestCase(unittest.TestCase):
         """All the keys in the input dictionaries should also exist in the output dictionaries."""
         stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
         for parallel in (True, False):
-            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel)
+            output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
             assert all([key in output[0] for key in stock[0]])
 
     def test_output_contains_extra_keys(self):
         """Output should contain keys Commodity, Commodity Code and Jaccard."""
         stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
         for parallel in (True, False):
-            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel)
+            output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
             assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
 
     def test_output_contains_all_extra_keys(self):
@@ -59,6 +65,23 @@ class MatchCommoditiesTestCase(unittest.TestCase):
         for parallel in (True, False):
             output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel, topn=2)
             assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+
+class MapPreprocessedToOriginalTestCase(unittest.TestCase):
+    """Test cases for map_preprocessed_to_original."""
+
+    def test_output_contains_all_extra_keys(self):
+        """Output should contain all the extra columns with Commodity, Commodity Code and Jaccard in stock_with_commodities."""
+        original = [{"text": "circuit", "id": "1", "Brand": ""}]
+        with_commodities = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": "", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Commodity 2": "Track circuit", "Commodity Code 2": "400", "Jaccard 2": "0.5"}]
+        output = map_preprocessed_to_original(original, with_commodities)
+        assert all([key in output[0][0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+
+    def test_fieldnames_contain_all_extra_keys_ordered(self):
+        """Output fieldnames should contain all the extra column names with Commodity, Commodity Code and Jaccard in stock_with_commodities in the right order."""
+        original = [{"text": "circuit", "id": "1", "Brand": ""}]
+        with_commodities = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": "", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Commodity 2": "Track circuit", "Commodity Code 2": "400", "Jaccard 2": "0.5"}]
+        output = map_preprocessed_to_original(original, with_commodities)
+        assert output[1] == ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2"]
 
 if __name__ == "__main__":
     unittest.main()
