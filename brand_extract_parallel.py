@@ -42,14 +42,13 @@ def regex_process(df, brandlist):
             regex = re.compile(r'(?<=(?:[A-Za-z0-9];|[A-Za-z0-9]\s|\W\W|\s\s|\W\s))\b3M\b(?!LG|\sLG|\sLENGTH|\sLONG)')
         else:
             regex = re.compile(r"(?<=(?:[A-Za-z0-9]\W|[A-Za-z0-9]\s|\s\s|\W\s|\W\W))\b"+i.upper()+r"\b")
-        df['Stock Master Combined[Brand v2]'][df["Stock Master Combined[Stock Description]"].str.upper().str.contains(regex, regex=True)] = i.upper()
+        df['Brand'][df["text"].str.upper().str.contains(regex, regex=True)] = i.upper()
     return df
 
-def main(fname, brandlist=True, output_brandlist=False):
+def detect_brands(cdf, brandlist=True, output_brandlist=False):
 
     #Code to run as function with brandlist already present in file
-    cdf = pd.read_csv(fname, encoding='utf-8')
-    cdf['Stock Master Combined[Stock Description]'].fillna('BLANK', inplace=True)
+    cdf['text'].fillna('BLANK', inplace=True)
     if brandlist:
         # brands = list(cdf['Stock Master Combined[Brand v2]'].value_counts().index.values)
         brands = ['LG', 'KOMATSU', 'CAT']
@@ -58,7 +57,7 @@ def main(fname, brandlist=True, output_brandlist=False):
         brands = list(brands.Brand.values)
 
     #Remove all single quote marks (apostrophes)
-    cdf["Stock Master Combined[Stock Description]"] = cdf["Stock Master Combined[Stock Description]"].str.upper().replace(r"'", '', regex=True)
+    cdf["text"] = cdf["text"].str.upper().replace(r"'", '', regex=True)
 
     # #start loop in reverse order
     cdf = parallelize_dataframe(cdf, regex_process, brands)
@@ -68,7 +67,7 @@ def main(fname, brandlist=True, output_brandlist=False):
     babbrvs = pd.read_csv('./brand_abbrevs.csv', encoding='utf-8')
     for num, bi in enumerate(babbrvs.brandname.values):
         regex = re.compile(r"(?<=(?:[A-Za-z0-9]\W|[A-Za-z0-9]\s|\s\s|\W\s|\W\W))\b"+bi.upper()+r"\b")
-        cdf['Stock Master Combined[Brand v2]'][cdf["Stock Master Combined[Stock Description]"]
+        cdf['Brand'][cdf["text"]
         .str.upper().str.contains(regex, regex=True)] = babbrvs.to_use[babbrvs.brandname==bi].str.upper()
 
     ###SAVE cdf WITH NEW BRAND COLUMN
@@ -81,13 +80,14 @@ def main(fname, brandlist=True, output_brandlist=False):
     else:
         ds = ''
 
-    cdf.to_csv(fname.split('.csv')[0]+' ('+str(time.gmtime().tm_year)+ms+str(time.gmtime().tm_mon)+ds+str(time.gmtime().tm_mday)+').csv', index=False)
+    #cdf.to_csv(fname.split('.csv')[0]+' ('+str(time.gmtime().tm_year)+ms+str(time.gmtime().tm_mon)+ds+str(time.gmtime().tm_mday)+').csv', index=False)
 
     #Save new brandlist
-    if output_brandlist:
-        cdf['Stock Master Combined[Brand v2]'].value_counts().to_frame().to_csv('./brandlist'+'_'+ds+str(time.gmtime().tm_mday)+'-'+ms+str(time.gmtime().tm_mon)+'-'+str(time.gmtime().tm_year)[:2]+'.csv')
+    #if output_brandlist:
+    #    cdf['Brand v2'].value_counts().to_frame().to_csv('./brandlist'+'_'+ds+str(time.gmtime().tm_mday)+'-'+ms+str(time.gmtime().tm_mon)+'-'+str(time.gmtime().tm_year)[:2]+'.csv')
 
     print('DONE!')
+    return cdf
 
 
 def check(f1, bname, fref):
@@ -104,8 +104,8 @@ def check(f1, bname, fref):
     dfref = pd.read_csv(fref, header=0, usecols=[0, 1, 20], encoding='utf-8')
 
     #Fill blank data
-    df1['Stock Master Combined[Stock Description]'].fillna('BLANK', inplace=True)
-    dfref['Stock Master Combined[Stock Description]'].fillna('BLANK', inplace=True)
+    df1['text'].fillna('BLANK', inplace=True)
+    dfref['text'].fillna('BLANK', inplace=True)
 
     # print(df1.head(5))
     
@@ -114,16 +114,16 @@ def check(f1, bname, fref):
     print('regex ', regex)
 
     #Run test using contains functions
-    x = df1[df1['Stock Master Combined[Stock Description]'].str.upper().str.contains(regex, regex=True)]
-    ref = dfref[dfref['Stock Master Combined[Stock Description]'].str.upper().str.contains(regex, regex=True)]
+    x = df1[df1['text'].str.upper().str.contains(regex, regex=True)]
+    ref = dfref[dfref['text'].str.upper().str.contains(regex, regex=True)]
     
     #Print results
     print('REF shape = ', ref.shape)
     print('File shape = ', x.shape)
 
     #Check based on [Brand v2] column
-    xx = df1[df1['Stock Master Combined[Brand v2]'] == bname]
-    ref2 = dfref[dfref['Stock Master Combined[Brand v2]'] == bname]
+    xx = df1[df1['Brand v2'] == bname]
+    ref2 = dfref[dfref['Brand v2'] == bname]
     #Print results
     print('REF [Band v2] shape = ', ref2.shape)
     print('File [Brand v2] shape = ', xx.shape)

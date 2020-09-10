@@ -8,6 +8,7 @@ import pandas
 # if "LOCAL" in os.environ:
 import file_utils
 import top_category_matcher
+import brand_extract_parallel
 # else:
 #     from . import file_utils
 #     from . import top_category_matcher
@@ -278,6 +279,7 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     return (rows, fieldnames)
 
 def add_commodities_to_dataframe(df):
+    df = brand_extract_parallel.detect_brands(df)
     input_rows = df.to_dict("records")
     output_rows, fieldnames = add_commodities_to_stocks(input_rows)
     df_out = pandas.DataFrame(output_rows)
