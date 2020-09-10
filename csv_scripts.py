@@ -282,7 +282,7 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         print("Row id: " + row["id"])
         # Use copy here to avoid modifying the input
         stocks[int(row["id"])] = row.copy()
-    extra_keys = []
+    extra_keys = [key for key in stocks_with_commodities[0].keys() if "Commodity" in key or "Jaccard" in key]
     for row in stocks_with_commodities:
         ids = filter(None, row["id"].split(";"))
         for i in ids:
@@ -290,7 +290,6 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
             for key in row.keys():
                 if "Commodity" in key or "Jaccard" in key:
                     stocks[int(i)].update({key: row[key]})
-                    extra_keys.append(key)
     def digits(text):
         num = ''.join(c for c in text if c.isdigit())
         return int(num) if num else 1
