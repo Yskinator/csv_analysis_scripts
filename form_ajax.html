@@ -1,0 +1,50 @@
+<head>
+<title>Testing</title>
+</head>
+<body>
+<form id="myForm" action="" class="form-example">
+    <div class="form-example">
+    <label for="description">Description: </label>
+    <input type="text" name="description" id="description" required></input>
+  </div>
+  <div class="form-example">
+    <label for="brand">Brand: </label>
+    <input type="text" name="brand" id="brand"></input>
+  </div>
+  <div class="form-example">
+    <label for="topn">Top n: </label>
+    <input type="number" name="topn" id="topn"></input>
+  </div>
+  <div class="form-example">
+    <input type="submit" value="Subscribe!">
+  </div>
+</form>
+<script>
+window.addEventListener( "load", function () {
+  function sendData() {
+
+    // Bind the FormData object and the form element
+    const FD = new FormData( form );
+    const params = new URLSearchParams(FD);
+
+    const request = new Request('https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code=uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ==&'+params.toString(), {method: 'GET'});
+ 
+    fetch(request).then(response => {console.log(response)});
+  }
+ 
+  // Access the form element...
+  const form = document.getElementById( "myForm" );
+
+  // ...and take over its submit event.
+  form.addEventListener( "submit", function ( event ) {
+    event.preventDefault();
+    
+    console.log("Sending data...");
+
+    sendData();
+  } );
+} );
+</script>
+</body>
+
+<!--https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code=uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ==" method="post" enctype="application/x-www-form-urlencoded" -->
