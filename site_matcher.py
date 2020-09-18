@@ -228,8 +228,8 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
         if oem_code in oem_dict:
             all_sites = all_sites | set(oem_dict[oem_code])
         for site in all_sites:
-            if site == row["Site"]:
-                continue
+            #if site == row["Site"]:
+            #    continue
             site_row = copy.deepcopy(row)
             old_row = find_row(old_item_ids_to_rows, item_id, site)
             if old_row:
