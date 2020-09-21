@@ -123,7 +123,7 @@ def exclude_oem_matches(site_rows, oem_dict):
         no_matches[site] = site_no_matches
     return no_matches
 
-def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict):
+def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict, executor):
     jobs = {}
     a_set = set()
     abbrevs = get_abbrevs()
@@ -132,10 +132,9 @@ def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict):
             row_jobs = {}
             preprocessed = preprocess(row["Stock Description"], abbrevs)
             oem_code = row["OEM Field"]
-            descs_preprocessed = {}
             for site in site_to_descs_preprocessed:
                 if site not in oem_dict[oem_code] or oem_code == "ZZDELETED" or not oem_code:
-                    row_jobs[site] = csv_scripts.most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, a_set)
+                    row_jobs[site] = executor.submit(csv_scripts.most_matching_words, preprocessed, site_to_descs_preprocessed[site], 10, a_set)
             jobs[row["Stock & Site"]] = row_jobs
     return jobs
 
@@ -152,12 +151,13 @@ def match_by_description(oem_dict, site_rows, old_site_rows):
         if site in old_site_to_descs_preprocessed:
             all_site_to_descs_preprocessed[site].update(old_site_to_descs_preprocessed[site])
     desc_matches = {}
-    jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict)
-    jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed, oem_dict)
-    jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed, oem_dict)
-    nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
-    no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
-    on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict, executor)
+        jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed, oem_dict, executor)
+        jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed, oem_dict, executor)
+        nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
+        no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
+        on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
     desc_matches = combine_desc_matches(nn_desc_matches, no_desc_matches, 10)
     desc_matches = combine_desc_matches(desc_matches, on_desc_matches, 10)
     return desc_matches
@@ -166,7 +166,8 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
     desc_matches = {}
     for item_id, item_jobs in jobs.items():
         for site, job in item_jobs.items():
-            results, scores = job #job.result()
+            #results, scores = job
+            results, scores = job.result()
             if str(item_id) not in desc_matches:
                 desc_matches[str(item_id)] = {}
             #site_to_descs_preprocessed[site][results[0]]["Stock & Site"]
