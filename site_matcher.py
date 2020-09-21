@@ -72,10 +72,7 @@ def generate_item_ids_to_rows(rows):
 
 def preprocess_all(site_rows):
     site_to_descs = {}
-    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
-    for abbrev in abbrevs:
-        abbrev["Abbreviation"] = abbrev["Abbreviation"].lower()
-        abbrev["Exapanded"] = abbrev["Expanded"].lower()
+    abbrevs = get_abbrevs()
     for site, rows in site_rows.items():
         desc_to_preprocessed = {}
         for row in rows:
@@ -84,6 +81,13 @@ def preprocess_all(site_rows):
             desc_to_preprocessed[desc] = relevant_data
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
+
+def get_abbrevs():
+    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
+    for abbrev in abbrevs:
+        abbrev["Abbreviation"] = abbrev["Abbreviation"].lower()
+        abbrev["Exapanded"] = abbrev["Expanded"].lower()
+    return abbrevs
 
 def preprocess(string, abbrevs = []):
     '''
@@ -95,7 +99,6 @@ def preprocess(string, abbrevs = []):
     OUTPUTS:
     - set of preprocessed words
     '''
-    print(abbrevs)
     #Lowercase, replace , and ; with spaces to prevent merging words
     string = string.lower().replace(",", " ").replace(";", " ")
     #Remove extra spaces we may have added
@@ -103,7 +106,7 @@ def preprocess(string, abbrevs = []):
     #Expand any abbreviations we may have
     for abbrev in abbrevs:
         string = string.replace(abbrev["Abbreviation"], abbrev["Expanded"])
-    return set(string.split())
+    return set(string.split(" "))
 
 def exclude_oem_matches(site_rows, oem_dict):
     #TODO: This looks broken. Investigate.
@@ -123,10 +126,11 @@ def exclude_oem_matches(site_rows, oem_dict):
 def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict):
     jobs = {}
     a_set = set()
+    abbrevs = get_abbrevs()
     for home, rows in site_rows.items():
         for row in rows:
             row_jobs = {}
-            preprocessed = preprocess(row["Stock Description"])
+            preprocessed = preprocess(row["Stock Description"], abbrevs)
             oem_code = row["OEM Field"]
             descs_preprocessed = {}
             for site in site_to_descs_preprocessed:
