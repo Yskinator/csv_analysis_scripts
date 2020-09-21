@@ -124,7 +124,7 @@ def most_matching_words(words_to_match, sentences_preprocessed, number_of_result
      - matches_sorted[:limit]
      - scores_sorted[:limit]
     '''
-    print("Matching " + str(words_to_match))
+    #print("Matching " + str(words_to_match))
     jaccard_index = {}
     try:
         for match_candidate in sentences_preprocessed:
@@ -136,7 +136,7 @@ def most_matching_words(words_to_match, sentences_preprocessed, number_of_result
     except:
         matches_sorted = ["NOT FOUND" for i in range(number_of_results)]
         scores_sorted = [0 for i in range(number_of_results)]
-    print("Finished " + str(words_to_match))
+    #print("Finished " + str(words_to_match))
     return matches_sorted[:number_of_results], scores_sorted[:number_of_results]
 
 def best_n_results(jaccard_index, n):
