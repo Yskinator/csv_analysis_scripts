@@ -300,7 +300,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
 
     return (final_rows, fieldnames)
 
-def match_sites_dataframe(dataframe, matches_json=""):
+def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json=""):
     '''
     Generates a dataframe of matched sites.
     matches_json is an optional parameter for saving and loading slow to generate
@@ -360,7 +360,10 @@ def match_sites_dataframe(dataframe, matches_json=""):
     matches_df = matches_df.fillna(value="")
     matches_df = matches_df[['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'OEM Code Match', 'Old Row', 'Site', 'Stock & Site', 'Stock Code']]
     
-    return matches_df
+    if return_fieldnames:
+        return matches_df, _
+    else:
+        return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
     if old:
@@ -390,8 +393,10 @@ if __name__=="__main__":
         print("""
         Script to match similar rows in data from different sites.
 
-        Use: $ python oem_connecter.py sites.csv ouput.csv (optional)match_data.json
+        Use: $ python oem_connecter.py sites.csv ouput.csv (optional) save_csv (optional)match_data.json
 
+        Save_csv should be "yes" or "no", depending on whether you want to save
+        the results to a csv file or not.
         Generating the description matches in match_data is by far the slowest part, so save it when expecting to re-use!
         """)
         sys.exit()
@@ -402,8 +407,12 @@ if __name__=="__main__":
     sites_file = sys.argv[1]
     output_file = sys.argv[2]#[3] #"OEM_Match_Results.csv"
     matches_json = ""
-    if len(sys.argv) == 4: #5:
-        matches_json = sys.argv[3]#[4]
+    if len(sys.argv) >= 4: #5:
+        save_csv = sys.argv[3]
+        if len(sys.argv) == 5:
+            matches_json = sys.argv[4]
+    else:
+        save_csv = "no"
     #fqmo_rows = file_utils.read_csv(sqmo_file)
     #kalumbila_rows = file_utils.read_csv(kalumbila_file)
     sites_rows = file_utils.read_csv(sites_file)
@@ -424,13 +433,16 @@ if __name__=="__main__":
     df = pandas.concat([ndf, odf]).reset_index(drop=True)
     #with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
     #    print(df)
-    matches_df = match_sites_dataframe(df)
+    if save_csv.lower() == "yes":
+        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True)
+        result_rows = matches_df.to_dict("records")
+        file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
+    else:
+        matches_df = match_sites_dataframe(df)
     print(matches_df.head(n=10))
-    #result_rows = matches_df.to_dict("records")
     #print(result_rows[:10])
     #exclude_unchanged = False
     #result_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json, exclude_unchanged)
-    #file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
     etime = time.time()
     ttime = etime-stime
     print('Time = ', ttime, 's')
