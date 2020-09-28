@@ -11,15 +11,30 @@
     <label for="brand">Brand: </label>
     <input type="text" name="brand" id="brand"></input>
   </div>
-  <div class="form-example">
+  <div class="form-example" style="display: none;">
     <label for="topn">Top n: </label>
-    <input type="number" name="topn" id="topn"></input>
+    <input type="hidden" value="3" name="topn" id="topn"></input>
   </div>
   <div class="form-example">
     <input type="submit" value="Subscribe!">
   </div>
 </form>
 <p id="output"></p>
+<section id="outputsection" style="display: none;">
+<h3>OUTPUT</h3>
+<p>Here are the top 3 best matches. To see the rest of the outputs, contact us for the full experience.</p>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Commodity</th>
+            <th>Similarity</th>
+        </tr>
+    </thead>
+    <tbody id="tablebody">
+    </tbody>
+</table>
+</section>
 <script>
 window.addEventListener( "load", function () {
   function sendData() {
@@ -29,14 +44,44 @@ window.addEventListener( "load", function () {
     const params = new URLSearchParams(FD);
 
     const request = new Request('https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code=uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ==&'+params.toString(), {method: 'GET'});
- 
+
     fetch(request).then(response => {const reader = response.body.getReader();
     var result = "";
     reader.read().then(
         function processText({ done, value }) {
             if (done) {
-                console.log("Text: ", result);
-                document.getElementById("output").textContent = result;
+                let result_json = JSON.parse(result);
+                console.log("Text: ", result_json);
+                //document.getElementById("output").textContent = result;
+
+                let tablebody = document.getElementById("tablebody");
+                tablebody.textContent = "";
+
+                for (let i of [1, 2, 3]) {
+                    let tablerow = document.createElement('tr');
+                    let id = document.createElement("td");
+                    let commodity = document.createElement("td");
+                    let similarity = document.createElement("td");
+
+                    id.textContent = i.toString();
+                    commodity_key = "Commodity"
+                    similarity_key = "Similarity"
+                    if (i > 1) {
+                        commodity_key += " "+i.toString()
+                        similarity_key += " "+i.toString()
+                    }
+                    commodity.textContent = result_json[0][commodity_key];
+                    similarity.textContent = result_json[0][similarity_key];
+                    tablerow.appendChild(id);
+                    tablerow.appendChild(commodity);
+                    tablerow.appendChild(similarity);
+
+                    tablebody.appendChild(tablerow);
+
+                }
+
+                document.getElementById("outputsection").style.display = "block";
+
                 return;
             }
             result += new TextDecoder("utf-8").decode(value);
@@ -44,14 +89,14 @@ window.addEventListener( "load", function () {
         });
     });
   }
- 
+
   // Access the form element...
   const form = document.getElementById( "myForm" );
 
   // ...and take over its submit event.
   form.addEventListener( "submit", function ( event ) {
     event.preventDefault();
-    
+
     console.log("Sending data...");
 
     sendData();
