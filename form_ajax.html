@@ -1,29 +1,72 @@
 <head>
 <title>Testing</title>
+<style>
+input {
+    margin: 1em;
+    padding: 1em;
+    border-radius: 1em;
+}
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid black;
+    border-radius: 2em;
+}
+thead th:nth-child(1) {
+  width: 13%;
+}
+
+thead th:nth-child(2) {
+  width: 60%;
+}
+
+thead th:nth-child(3) {
+  width: 35%;
+}
+td, th {
+    padding-left: 0.5em;
+}
+th {
+    border: 1px solid black;
+}
+td {
+    color: darkgray;
+    border: 1px solid black;
+}
+div.contents {
+    margin-left: 2em;
+    width: 80%;
+}
+</style>
 </head>
-<body>
+<body style="background-color: lightgray;">
+<div style="text-align: center; width: 50%; margin: auto; background-color: white; border-radius: 1em; box-shadow: 1px 1px black;">
+<div style="background-color: black; color: white;"><h3>DEMO<h3></div>
+<div class="contents">
+<h3 style="text-align: left;">INPUT</h3>
 <form id="myForm" action="" class="form-example">
-    <div class="form-example">
-    <label for="description">Description: </label>
-    <input type="text" name="description" id="description" required></input>
+  <div class="form-example">
+    <input type="text" name="description" id="description" placeholder="Description" required></input>
   </div>
   <div class="form-example">
-    <label for="brand">Brand: </label>
-    <input type="text" name="brand" id="brand"></input>
+    <input type="text" name="brand" id="brand" placeholder="Brand"></input>
   </div>
   <div class="form-example" style="display: none;">
     <label for="topn">Top n: </label>
     <input type="hidden" value="3" name="topn" id="topn"></input>
   </div>
   <div class="form-example">
-    <input type="submit" value="Subscribe!">
+    <input id="submit-button" type="submit" value="Submit" style="background-color: olive; color: white;">
   </div>
 </form>
 <p id="output"></p>
-<section id="outputsection" style="display: none;">
+</div>
+<section id="outputsection" style="display: none; text-align: left; border-top: 1px solid lightgray; padding-bottom: 2em;">
+<div class="contents">
 <h3>OUTPUT</h3>
 <p>Here are the top 3 best matches. To see the rest of the outputs, contact us for the full experience.</p>
-<table>
+<table style="padding: 1em; text-align: left;">
     <thead>
         <tr>
             <th>ID</th>
@@ -35,6 +78,8 @@
     </tbody>
 </table>
 </section>
+</div>
+</div>
 <script>
 window.addEventListener( "load", function () {
   function sendData() {
@@ -81,6 +126,8 @@ window.addEventListener( "load", function () {
                 }
 
                 document.getElementById("outputsection").style.display = "block";
+
+                document.getElementById("submit-button").value = "Try Another";
 
                 return;
             }
