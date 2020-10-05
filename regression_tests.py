@@ -18,9 +18,14 @@ class RegressionTestCase(unittest.TestCase):
         all_matched = True
         for i, row in enumerate(rows):
             if not row['Commodity'] == stock_master[i]['Commodity']:
-                print("Did not match, row "+str(i)+", "+row['text']+": "+row['Commodity']+" vs. "+stock_master[i]['Commodity'])
+                print("Did not match, row "+str(i)+", "+row['text'])
+                print("New: '"+row['Commodity']+"' vs. Original: '"+stock_master[i]['Commodity']+"'")
                 all_matched = False
-        assert(all_matched)
+        assert(len(rows) == 100)
+        assert(sorted(rows[0].keys()) == sorted(fieldnames))
+        assert(sorted(fieldnames) == sorted(stock_master[0].keys()))
+        if not all_matched:
+            print("WARNING: all of the rows did not match. If the above results look fine, you may want to update regression_test_stock_master.csv.")
 
 if __name__ == "__main__":
     unittest.main()
