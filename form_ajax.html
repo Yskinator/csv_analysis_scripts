@@ -38,6 +38,14 @@ div.contents {
     margin-left: 2em;
     width: 80%;
 }
+input#submit-button {
+    background-color: olive;
+    color: white;
+    background-image: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 11em;
+}
 </style>
 </head>
 <body style="background-color: lightgray;">
@@ -57,7 +65,7 @@ div.contents {
     <input type="hidden" value="3" name="topn" id="topn"></input>
   </div>
   <div class="form-example">
-    <input id="submit-button" type="submit" value="Submit" style="background-color: olive; color: white;">
+    <input id="submit-button" type="submit" value="Submit">
   </div>
 </form>
 <p id="output"></p>
@@ -88,53 +96,62 @@ window.addEventListener( "load", function () {
     const FD = new FormData( form );
     const params = new URLSearchParams(FD);
 
-    const request = new Request('https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code=uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ==&'+params.toString(), {method: 'GET'});
+    const code = "uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ=="
 
+    const request = new Request("https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code="+code+"&"+params.toString(), {method: "GET"});
+
+    submit_button = document.getElementById("submit-button");
+    submit_button.style.backgroundImage = 'url("Chromiumthrobber.svg")';
+    submit_button.value = "";
+    
     fetch(request).then(response => {const reader = response.body.getReader();
-    var result = "";
-    reader.read().then(
-        function processText({ done, value }) {
-            if (done) {
-                let result_json = JSON.parse(result);
-                console.log("Text: ", result_json);
-                //document.getElementById("output").textContent = result;
+        var result = "";
+        
+        reader.read().then(
+            function processText({ done, value }) {
+                if (done) {
+                    let result_json = JSON.parse(result);
+                    console.log("Text: ", result_json);
+                    //document.getElementById("output").textContent = result;
 
-                let tablebody = document.getElementById("tablebody");
-                tablebody.textContent = "";
+                    let tablebody = document.getElementById("tablebody");
+                    tablebody.textContent = "";
 
-                for (let i of [1, 2, 3]) {
-                    let tablerow = document.createElement('tr');
-                    let id = document.createElement("td");
-                    let commodity = document.createElement("td");
-                    let similarity = document.createElement("td");
+                    for (let i of [1, 2, 3]) {
+                        let tablerow = document.createElement('tr');
+                        let id = document.createElement("td");
+                        let commodity = document.createElement("td");
+                        let similarity = document.createElement("td");
 
-                    id.textContent = i.toString();
-                    commodity_key = "Commodity"
-                    similarity_key = "Similarity"
-                    if (i > 1) {
-                        commodity_key += " "+i.toString()
-                        similarity_key += " "+i.toString()
+                        id.textContent = i.toString();
+                        commodity_key = "Commodity"
+                        similarity_key = "Similarity"
+                        if (i > 1) {
+                            commodity_key += " "+i.toString()
+                            similarity_key += " "+i.toString()
+                        }
+                        commodity.textContent = result_json[0][commodity_key];
+                        similarity.textContent = result_json[0][similarity_key];
+                        tablerow.appendChild(id);
+                        tablerow.appendChild(commodity);
+                        tablerow.appendChild(similarity);
+
+                        tablebody.appendChild(tablerow);
+
                     }
-                    commodity.textContent = result_json[0][commodity_key];
-                    similarity.textContent = result_json[0][similarity_key];
-                    tablerow.appendChild(id);
-                    tablerow.appendChild(commodity);
-                    tablerow.appendChild(similarity);
 
-                    tablebody.appendChild(tablerow);
+                    document.getElementById("outputsection").style.display = "block";
+                    
+                    submit_button.style.backgroundImage = "none";
+                    submit_button.value = "Try Another";
 
+                    return;
                 }
-
-                document.getElementById("outputsection").style.display = "block";
-
-                document.getElementById("submit-button").value = "Try Another";
-
-                return;
-            }
-            result += new TextDecoder("utf-8").decode(value);
-            return reader.read().then(processText);
-        });
+                result += new TextDecoder("utf-8").decode(value);
+                return reader.read().then(processText);
+            });
     });
+
   }
 
   // Access the form element...
