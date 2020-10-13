@@ -227,26 +227,11 @@ def find_row(old_item_ids_to_rows, item_id, match_site):
             if row["Match Site"] == match_site:
                 return row
 
-def generate_stock_n_site_to_desc_dict(site_rows, old_site_rows):
-    all_rows = []
-    for site, rows in site_rows.items():
-        all_rows += rows
-    for site, rows in old_site_rows.items():
-        all_rows += rows
-    row_to_desc = {}
-    for row in all_rows:
-        if row["Stock Description"] == "-1":
-            row_to_desc[row["Stock & Site"]] = row["Description"]
-        else:
-            row_to_desc[row["Stock & Site"]] = row["Stock Description"]
-    return row_to_desc
-
 def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
     #num = 0
     #for site in site_rows:
     #    site_rows[site], num = number(site_rows[site], num)
     oem_dict = generate_oem_dict(site_rows, old_site_rows)
-    stock_n_site_to_desc_dict = generate_stock_n_site_to_desc_dict(site_rows, old_site_rows)
     sites = set(site_rows.keys()) | set(old_site_rows.keys())
     rows = base_rows_from(site_rows)
     old_rows = base_rows_from(old_site_rows)
@@ -280,7 +265,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
             site_row["Match Site"] = site
             if oem_code in oem_dict:
                 if site in oem_dict[oem_code]:
-                    site_row["OEM Code Match"] = stock_n_site_to_desc_dict[oem_dict[oem_code][site]["Stock & Site"]]
+                    site_row["OEM Code Match"] = oem_dict[oem_code][site]["Stock & Site"]
                     if old_row:
                         if old_row["OEM Code Match"] != site_row["OEM Code Match"]:
                             site_row["Old Row"] = "Yes"
@@ -304,7 +289,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                         if set(matches["Matches"]) != old_match_set:
                             site_row["Old Row"] = "Yes"
                     for i, (match, score) in enumerate(zip(matches["Matches"], matches["Scores"])):
-                        site_row["Description Match {}".format(str(i))] = stock_n_site_to_desc_dict[match]
+                        site_row["Description Match {}".format(str(i))] = match 
                         site_row["Description Match {} Score".format(str(i))] = str(score)
             if not (site_row["Old Row"] == "Unchanged" and exclude_unchanged):
                 final_rows.append(site_row)
