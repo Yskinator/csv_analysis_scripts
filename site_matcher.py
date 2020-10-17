@@ -123,7 +123,7 @@ def exclude_oem_matches(site_rows, oem_dict):
         no_matches[site] = site_no_matches
     return no_matches
 
-def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict, executor):
+def generate_jobs(site_rows, site_to_descs_preprocessed, executor):
     jobs = {}
     a_set = set()
     abbrevs = get_abbrevs()
@@ -133,14 +133,13 @@ def generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict, executor):
             preprocessed = preprocess(row["Stock Description"], abbrevs)
             oem_code = row["OEM Field"]
             for site in site_to_descs_preprocessed:
-                if site not in oem_dict[oem_code] or oem_code == "ZZDELETED" or not oem_code:
-                    row_jobs[site] = executor.submit(csv_scripts.most_matching_words, preprocessed, site_to_descs_preprocessed[site], 10, a_set)
+                row_jobs[site] = executor.submit(csv_scripts.most_matching_words, preprocessed, site_to_descs_preprocessed[site], 10, a_set)
             jobs[row["Stock & Site"]] = row_jobs
     return jobs
 
-def match_by_description(oem_dict, site_rows, old_site_rows):
+def match_by_description(site_rows, old_site_rows):
     print("Match_by_description")
-    site_rows = exclude_oem_matches(site_rows, oem_dict)
+    #site_rows = exclude_oem_matches(site_rows, oem_dict)
     site_to_descs_preprocessed = preprocess_all(site_rows)
     old_site_to_descs_preprocessed = preprocess_all(old_site_rows)
     all_site_to_descs_preprocessed = {}
@@ -152,9 +151,9 @@ def match_by_description(oem_dict, site_rows, old_site_rows):
             all_site_to_descs_preprocessed[site].update(old_site_to_descs_preprocessed[site])
     desc_matches = {}
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed, oem_dict, executor)
-        jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed, oem_dict, executor)
-        jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed, oem_dict, executor)
+        jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed, executor)
+        jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed, executor)
+        jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed, executor)
         nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
         no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
         on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
@@ -231,16 +230,14 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
     #num = 0
     #for site in site_rows:
     #    site_rows[site], num = number(site_rows[site], num)
-    oem_dict = generate_oem_dict(site_rows, old_site_rows)
     sites = set(site_rows.keys()) | set(old_site_rows.keys())
     rows = base_rows_from(site_rows)
     old_rows = base_rows_from(old_site_rows)
     rows = rows + old_rows
-    #rows = match_by_oem_code(oem_dict, rows)
     if matches_json and file_utils.file_exists(matches_json):
         desc_matches = file_utils.read_json(matches_json)
     else:
-        desc_matches = match_by_description(oem_dict, site_rows, old_site_rows)
+        desc_matches = match_by_description(site_rows, old_site_rows)
         if matches_json:
             file_utils.save_json(matches_json, desc_matches)
     final_rows = []
@@ -251,8 +248,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
         all_sites = set()
         if item_id in desc_matches:
             all_sites = all_sites | set(desc_matches[item_id])
-        if oem_code in oem_dict:
-            all_sites = all_sites | set(oem_dict[oem_code])
         for site in all_sites:
             if site == row["Site"]:
                 continue
@@ -263,12 +258,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
             else:
                 site_row["Old Row"] = "No"
             site_row["Match Site"] = site
-            if oem_code in oem_dict:
-                if site in oem_dict[oem_code]:
-                    site_row["OEM Code Match"] = oem_dict[oem_code][site]["Stock & Site"]
-                    if old_row:
-                        if old_row["OEM Code Match"] != site_row["OEM Code Match"]:
-                            site_row["Old Row"] = "Yes"
             if item_id in desc_matches:
                 if site in desc_matches[item_id]:
                     matches = desc_matches[item_id][site]
@@ -293,7 +282,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                         site_row["Description Match {} Score".format(str(i))] = str(score)
             if not (site_row["Old Row"] == "Unchanged" and exclude_unchanged):
                 final_rows.append(site_row)
-    fieldnames = ["Site", "Match Site", "Stock & Site", "OEM Code", "Stock Code", "Description", "OEM Code Match", "Old Row"]
+    fieldnames = ["Site", "Match Site", "Stock & Site", "OEM Code", "Stock Code", "Description", "Old Row"]
     for i in range(10):
         fieldnames.append("Description Match {}".format(str(i)))
         fieldnames.append("Description Match {} Score".format(str(i)))
@@ -353,15 +342,15 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
-    matches_rows, _ = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
-    matches_df = pandas.DataFrame(matches_rows, columns=['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'OEM Code Match', 'Old Row', 'Site', 'Stock & Site', 'Stock Code'])
+    matches_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
+    matches_df = pandas.DataFrame(matches_rows, columns=['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'Old Row', 'Site', 'Stock & Site', 'Stock Code'])
     
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
-    matches_df = matches_df[['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'OEM Code Match', 'Old Row', 'Site', 'Stock & Site', 'Stock Code']]
-    
+    matches_df = matches_df[['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'Old Row', 'Site', 'Stock & Site', 'Stock Code']]
+
     if return_fieldnames:
-        return matches_df, _
+        return matches_df, fieldnames
     else:
         return matches_df
 
