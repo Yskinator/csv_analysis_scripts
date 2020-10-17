@@ -76,7 +76,7 @@ def preprocess_all(site_rows):
     for site, rows in site_rows.items():
         desc_to_preprocessed = {}
         for row in rows:
-            desc = row["Stock Description"]
+            desc = row["Stock Description"] + " " + row["OEM Field"]
             relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
             desc_to_preprocessed[desc] = relevant_data
         site_to_descs[site] = desc_to_preprocessed
@@ -130,7 +130,7 @@ def generate_jobs(site_rows, site_to_descs_preprocessed, executor):
     for home, rows in site_rows.items():
         for row in rows:
             row_jobs = {}
-            preprocessed = preprocess(row["Stock Description"], abbrevs)
+            preprocessed = preprocess(row["Stock Description"] + " " + row["OEM Field"], abbrevs)
             oem_code = row["OEM Field"]
             for site in site_to_descs_preprocessed:
                 row_jobs[site] = executor.submit(csv_scripts.most_matching_words, preprocessed, site_to_descs_preprocessed[site], 10, a_set)
