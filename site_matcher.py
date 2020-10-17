@@ -9,7 +9,7 @@ import copy
 
 
 def output_fieldnames():
-    return ['Site', 'Match Site', 'Stock & Site', 'OEM Code', 'Stock Code', 'Description', 'OEM Code Match', 'Old Row', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score']
+    return ['Site', 'Match Site', 'Stock & Site', 'OEM Code', 'Stock Code', 'Description', 'Old Row', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score']
 
 def input_fieldnames():
     return ["Site", "Stock Code", "Stock & Site", "OEM Field", "Stock Description"]
