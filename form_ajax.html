@@ -1,10 +1,15 @@
 <head>
 <title>Testing</title>
 <style>
+form {
+    width: 100%;
+}
 input {
-    margin: 1em;
+    width: 100%;
+    margin: 1em 0;
     padding: 1em;
-    border-radius: 1em;
+    border-radius: 0.5em;
+    border: 1px solid black;
 }
 table {
     table-layout: fixed;
@@ -36,20 +41,22 @@ td {
 }
 div.contents {
     margin-left: 2em;
-    width: 80%;
+    margin-right: 2em;
+    font-family: sans-serif;
 }
 input#submit-button {
-    background-color: olive;
+    background-color: #99a771;
     color: white;
     background-image: none;
     background-repeat: no-repeat;
     background-position: center;
     width: 11em;
+    border: none;
 }
 </style>
 </head>
-<body style="background-color: lightgray;">
-<div style="text-align: center; width: 50%; margin: auto; background-color: white; border-radius: 1em; box-shadow: 1px 1px black;">
+<body style="background-color: #faf9f9;">
+<div style="text-align: center; width: 80%; margin: auto; background-color: white; border-radius: 1em; box-shadow: 1px 1px black; max-width: 630px;">
 <div style="background-color: black; color: white;"><h3>DEMO<h3></div>
 <div class="contents">
 <h3 style="text-align: left;">INPUT</h3>
