@@ -47,12 +47,6 @@ def one_None_description_3_rows():
     rows[2]["Stock Description"] = None
     return rows
 
-def correct_input_2_rows_oem_match():
-    rows = correct_input_2_rows()
-    rows[0]["OEM Field"] = "Match made in heaven"
-    rows[1]["OEM Field"] = "Match made in heaven"
-    return rows
-
 def correct_output_2_rows():
     rows = correct_input_2_rows()
     rows[0]["Stock Description"] = "Thingamajig The Third"
@@ -63,7 +57,7 @@ def correct_output_2_rows():
 
 def correct_output_3_rows_1_unchanged():
     rows = correct_output_2_rows()
-    old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'OEM Code': '', 'Stock Code': '123', 'Description': 'Thingamajig', 'OEM Code Match': '', 'Old Row': 'No', 'Description Match 0': 'Thingamajig', 'Description Match 0 Score': '1.0', 'Description Match 1': 'Thingamajig The Fourth', 'Description Match 1 Score': '0.3333333333333333', 'Description Match 2': '', 'Description Match 2 Score': '', 'Description Match 3': '', 'Description Match 3 Score': '', 'Description Match 4': '', 'Description Match 4 Score': '', 'Description Match 5': '', 'Description Match 5 Score': '', 'Description Match 6': '', 'Description Match 6 Score': '', 'Description Match 7': '', 'Description Match 7 Score': '', 'Description Match 8': '', 'Description Match 8 Score': '', 'Description Match 9': '', 'Description Match 9 Score': ''}
+    old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'OEM Code': '', 'Stock Code': '123', 'Description': 'Thingamajig', 'Old Row': 'No', 'Description Match 0': 'Thingamajig', 'Description Match 0 Score': '1.0', 'Description Match 1': 'Thingamajig The Fourth', 'Description Match 1 Score': '0.3333333333333333', 'Description Match 2': '', 'Description Match 2 Score': '', 'Description Match 3': '', 'Description Match 3 Score': '', 'Description Match 4': '', 'Description Match 4 Score': '', 'Description Match 5': '', 'Description Match 5 Score': '', 'Description Match 6': '', 'Description Match 6 Score': '', 'Description Match 7': '', 'Description Match 7 Score': '', 'Description Match 8': '', 'Description Match 8 Score': '', 'Description Match 9': '', 'Description Match 9 Score': ''}
     rows.append(old_row)
     return rows
 
@@ -114,10 +108,6 @@ def match_2_correct_inputs_and_3_outputs_1_unchanged():
     rows = rows_in + rows_out
     return match(rows)
 
-def match_2_correct_inputs_oem_match():
-    rows = correct_input_2_rows_oem_match()
-    return match(rows)
-
 def match_1_empty_description_3_rows():
     rows = one_empty_description_3_rows()
     return match(rows)
@@ -149,7 +139,6 @@ class IntegrationTestCase(unittest.TestCase):
         cls.correct_input_3_rows_output = match_3_correct_inputs()
         cls.correct_2_inputs_and_outputs_output = match_2_correct_inputs_and_outputs()
         cls.correct_2_inputs_3_outputs_1_unchanged_output = match_2_correct_inputs_and_3_outputs_1_unchanged()
-        cls.correct_2_inputs_oem_match_output = match_2_correct_inputs_oem_match()
         cls.one_empty_description_3_rows_output = match_1_empty_description_3_rows()
         cls.one_None_description_3_rows_output = match_1_None_Description_3_rows()
         cls.missing_description_2_rows_output = match_missing_description_2_rows()
@@ -209,16 +198,11 @@ class IntegrationTestCase(unittest.TestCase):
         for row in rows:
             keys = row.keys()
             self.assertIn("Match Site", keys)
-            self.assertIn("OEM Code Match", keys)
             self.assertIn("Old Row", keys)
 
     def assert_match_site_2_rows_correct(self, r1, r2):
         self.assertEqual("Site B", r1["Match Site"])
         self.assertEqual("Site A", r2["Match Site"])
-
-    def assert_oem_match_2_rows_correct(self, r1, r2):
-        self.assertEqual("", r1["OEM Code Match"])
-        self.assertEqual("", r2["OEM Code Match"])
 
     def assert_description_match_2_rows_correct(self, r1, r2):
         self.assertEqual("Thingamajig", r1["Description Match 0"])
@@ -241,10 +225,6 @@ class IntegrationTestCase(unittest.TestCase):
     def assert_match_site_not_site(self,rows):
         for row in rows:
             self.assertNotEqual(row["Site"], row["Match Site"])
-
-    def assert_no_oem_code_matches(self, rows):
-        for row in rows:
-            self.assertEqual("", row["OEM Code Match"])
 
     def assert_description_match_3_rows_correct(self, r1, r2, r3):
         self.assertEqual(r1["Description Match 0"], "Thingamajig")
@@ -280,10 +260,6 @@ class IntegrationTestCase(unittest.TestCase):
         self.assertEqual(r4["Description Match 0 Score"], "0.5")
         self.assertIn(r4["Description Match 1"], ["Thingamajig", "Thingamajig The Third"])
         self.assertEqual(r4["Description Match 1 Score"], "0.3333333333333333")
-
-    def assert_oem_match_2_inputs_oem_match_correct(self, r1, r2):
-        self.assertEqual(r1["OEM Code Match"], "Unique ID 2")
-        self.assertEqual(r2["OEM Code Match"], "Unique ID 1")
 
     def assert_empty_descriptions_should_give_poor_matches(self, rows):
         """Score for empty descriptino matches should be 0"""
@@ -327,12 +303,6 @@ class IntegrationTestCase(unittest.TestCase):
         r2 = rows[1]
         self.assert_match_site_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_oem_match_correct(self):
-        rows = self.correct_input_2_rows_output
-        r1 = rows[0]
-        r2 = rows[1]
-        self.assert_oem_match_2_rows_correct(r1, r2)
-
     def test_correct_input_2_rows_description_match_correct(self):
         rows = self.correct_input_2_rows_output
         r1 = rows[0]
@@ -371,12 +341,6 @@ class IntegrationTestCase(unittest.TestCase):
         r2 = rows[1]
         self.assert_match_site_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_whitespace_oem_match_correct(self):
-        rows = self.correct_input_2_rows_whitespace_output
-        r1 = rows[0]
-        r2 = rows[1]
-        self.assert_oem_match_2_rows_correct(r1, r2)
-
     def test_correct_input_2_rows_whitespace_description_match_correct(self):
         rows = self.correct_input_2_rows_whitespace_output
         r1 = rows[0]
@@ -403,10 +367,6 @@ class IntegrationTestCase(unittest.TestCase):
     #    rows = self.correct_input_3_rows_output
     #    self.assert_match_site_not_site(rows)
 
-    def test_correct_input_3_rows_no_oem_code_matches(self):
-        rows = self.correct_input_3_rows_output
-        self.assert_no_oem_code_matches(rows)
-
     def test_correct_input_3_rows_description_matches_correct(self):
         rows = self.correct_input_3_rows_output
         self.assert_description_match_3_rows_correct(rows[0], rows[1], rows[2])
@@ -430,19 +390,6 @@ class IntegrationTestCase(unittest.TestCase):
         r2, r3, r4 = rows
         self.assertEqual(len(rows), 3)
         self.assert_description_match_2_inputs_3_outputs_1_unchanged_correct(r2,r3,r4)
-
-    def test_correct_2_inputs_oem_match_things_that_should_always_be_true(self):
-        rows = self.correct_2_inputs_oem_match_output
-        self.assert_things_that_should_always_be_true(rows)
-    
-    def test_correct_2_inputs_oem_match_description_match_correct(self):
-        rows = self.correct_2_inputs_oem_match_output
-        self.assert_extra_match_columns_empty(rows, start_index=0)
-    
-    def test_correct_2_inputs_oem_match_oem_match_correct(self):
-        rows = self.correct_2_inputs_oem_match_output
-        r1,r2 = rows
-        self.assert_oem_match_2_inputs_oem_match_correct(r1, r2)
 
     def test_1_empty_description_3_rows_things_that_should_always_be_true(self):
         rows = self.one_empty_description_3_rows_output
