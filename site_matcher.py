@@ -17,37 +17,6 @@ def input_fieldnames():
 def all_fieldnames():
     return list(set(input_fieldnames()) | set(output_fieldnames()))
 
-def generate_oem_dict(site_rows, old_site_rows):
-    oem_dict = {}
-    for site, rows in site_rows.items():
-        oem_dict = update_oem_dict(site, oem_dict, rows)
-    for site, rows in old_site_rows.items():
-        oem_dict = update_oem_dict(site, oem_dict, rows)
-    return oem_dict
-
-def update_oem_dict(site, oem_dict, rows):
-    for row in rows:
-        oem_code = row["OEM Field"]
-        if oem_code == "":
-            oem_dict[oem_code] = {}
-            continue
-        if oem_code in oem_dict:
-            single_oem = oem_dict[oem_code]
-        else:
-            single_oem = {}
-        single_oem[site] = {"Description": row["Stock Description"], "Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
-        oem_dict[oem_code] = single_oem
-    return oem_dict
-
-def match_by_oem_code(oem_dict, rows):
-    for row in rows:
-        oem_code = row["OEM Code"]
-        if oem_code in oem_dict:
-            oem_matches = oem_dict[oem_code]
-            for site, match in oem_matches.items():
-                row["{} OEM Code Match".format(site)] = match["Stock & Site"]
-    return rows
-
 def base_rows_from(site_rows):
     base_rows = []
     for site, rows in site_rows.items():
@@ -107,21 +76,6 @@ def preprocess(string, abbrevs = []):
     for abbrev in abbrevs:
         string = string.replace(abbrev["Abbreviation"], abbrev["Expanded"])
     return set(string.split(" "))
-
-def exclude_oem_matches(site_rows, oem_dict):
-    #TODO: This looks broken. Investigate.
-    no_matches = {}
-    for site in site_rows:
-        rows = site_rows[site]
-        site_no_matches = []
-        for row in rows:
-            for site2 in site_rows:
-                oem_code = row["OEM Field"]
-                if site2 not in oem_dict[oem_code] or oem_code == "ZZDELETED" or not oem_code:
-                   site_no_matches.append(row)
-                   break
-        no_matches[site] = site_no_matches
-    return no_matches
 
 def generate_jobs(site_rows, site_to_descs_preprocessed, executor):
     jobs = {}
