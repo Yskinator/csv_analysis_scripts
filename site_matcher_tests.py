@@ -57,7 +57,7 @@ def correct_output_2_rows():
 
 def correct_output_3_rows_1_unchanged():
     rows = correct_output_2_rows()
-    old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'OEM Code': '', 'Stock Code': '123', 'Description': 'Thingamajig', 'Old Row': 'No', 'Description Match 0': 'Unique ID 2', 'Description Match 0 Score': '1.0', 'Description Match 1': 'Unique ID 4', 'Description Match 1 Score': '0.3333333333333333', 'Description Match 2': '', 'Description Match 2 Score': '', 'Description Match 3': '', 'Description Match 3 Score': '', 'Description Match 4': '', 'Description Match 4 Score': '', 'Description Match 5': '', 'Description Match 5 Score': '', 'Description Match 6': '', 'Description Match 6 Score': '', 'Description Match 7': '', 'Description Match 7 Score': '', 'Description Match 8': '', 'Description Match 8 Score': '', 'Description Match 9': '', 'Description Match 9 Score': ''}
+    old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'OEM Code': '', 'Stock Code': '123', 'Description': 'Thingamajig', 'Old Row': 'No', 'Description Match 0': 'Thingamajig', 'Description Match 0 Score': '1.0', 'Description Match 1': 'Thingamajig The Fourth', 'Description Match 1 Score': '0.3333333333333333', 'Description Match 2': '', 'Description Match 2 Score': '', 'Description Match 3': '', 'Description Match 3 Score': '', 'Description Match 4': '', 'Description Match 4 Score': '', 'Description Match 5': '', 'Description Match 5 Score': '', 'Description Match 6': '', 'Description Match 6 Score': '', 'Description Match 7': '', 'Description Match 7 Score': '', 'Description Match 8': '', 'Description Match 8 Score': '', 'Description Match 9': '', 'Description Match 9 Score': ''}
     rows.append(old_row)
     return rows
 
@@ -205,8 +205,8 @@ class IntegrationTestCase(unittest.TestCase):
         self.assertEqual("Site A", r2["Match Site"])
 
     def assert_description_match_2_rows_correct(self, r1, r2):
-        self.assertEqual("Unique ID 2", r1["Description Match 0"])
-        self.assertEqual("Unique ID 1", r2["Description Match 0"])
+        self.assertEqual("Thingamajig", r1["Description Match 0"])
+        self.assertEqual("Thingamajig", r2["Description Match 0"])
         self.assertEqual("1.0", r1["Description Match 0 Score"])
         self.assertEqual("1.0", r2["Description Match 0 Score"])
 
@@ -227,38 +227,38 @@ class IntegrationTestCase(unittest.TestCase):
             self.assertNotEqual(row["Site"], row["Match Site"])
 
     def assert_description_match_3_rows_correct(self, r1, r2, r3):
-        self.assertEqual(r1["Description Match 0"], "Unique ID 2")
+        self.assertEqual(r1["Description Match 0"], "Thingamajig")
         self.assertEqual(r1["Description Match 0 Score"], "1.0")
-        self.assertEqual(r1["Description Match 1"], "Unique ID 3")
+        self.assertEqual(r1["Description Match 1"], "Thingamajig The Second")
         self.assertEqual(r1["Description Match 1 Score"], "0.3333333333333333")
-        self.assertEqual(r2["Description Match 0"], "Unique ID 1")
-        self.assertEqual(r3["Description Match 0"], "Unique ID 1")
+        self.assertEqual(r2["Description Match 0"], "Thingamajig")
+        self.assertEqual(r3["Description Match 0"], "Thingamajig")
         self.assertEqual(r2["Description Match 0 Score"], "1.0")
         self.assertEqual(r3["Description Match 0 Score"], "0.3333333333333333")
         self.assert_extra_match_columns_empty([r1], 2)
         self.assert_extra_match_columns_empty([r2, r3], 1)
 
     def assert_description_match_2_correct_inputs_and_outputs_correct(self, r1, r2, r3, r4):
-        self.assertEqual(r1["Description Match 0"], "Unique ID 2")
+        self.assertEqual(r1["Description Match 0"], "Thingamajig")
         self.assertEqual(r1["Description Match 0 Score"], "1.0")
-        self.assertIn(r1["Description Match 1"], [f"Unique ID {i}" for i in [3, 4]])
+        self.assertIn(r1["Description Match 1"], ["Thingamajig The Second", "Thingamajig The Fourth"])
         self.assertEqual(r1["Description Match 1 Score"], "0.3333333333333333")
         self.assert_description_match_2_inputs_3_outputs_1_unchanged_correct(r2, r3, r4)
 
     def assert_description_match_2_inputs_3_outputs_1_unchanged_correct(self, r2, r3, r4):
-        self.assertEqual(r2["Description Match 0"], "Unique ID 4")
+        self.assertEqual(r2["Description Match 0"], "Thingamajig The Fourth")
         self.assertEqual(r2["Description Match 0 Score"], "0.5")
-        self.assertIn(r2["Description Match 1"], [f"Unique ID {i}" for i in [1, 2, 4]])
+        self.assertIn(r2["Description Match 1"], ["Thingamajig", "Thingamajig The Fourth"])
         self.assertEqual(r2["Description Match 1 Score"], "0.3333333333333333")
 
-        self.assertEqual(r3["Description Match 0"], "Unique ID 1")
+        self.assertEqual(r3["Description Match 0"], "Thingamajig")
         self.assertEqual(r3["Description Match 0 Score"], "1.0")
-        self.assertIn(r3["Description Match 1"], [f"Unique ID {i}" for i in [3, 4]])
+        self.assertIn(r3["Description Match 1"], ["Thingamajig The Third", "Thingamajig The Fourth"])
         self.assertEqual(r3["Description Match 1 Score"], "0.3333333333333333")
 
-        self.assertEqual(r4["Description Match 0"], "Unique ID 3")
+        self.assertEqual(r4["Description Match 0"], "Thingamajig The Third")
         self.assertEqual(r4["Description Match 0 Score"], "0.5")
-        self.assertIn(r4["Description Match 1"], [f"Unique ID {i}" for i in [1, 2, 3]])
+        self.assertIn(r4["Description Match 1"], ["Thingamajig", "Thingamajig The Third"])
         self.assertEqual(r4["Description Match 1 Score"], "0.3333333333333333")
 
     def assert_empty_descriptions_should_give_poor_matches(self, rows):
