@@ -1,0 +1,179 @@
+<head>
+<title>Testing</title>
+<style>
+form {
+    width: 100%;
+}
+input {
+    width: 100%;
+    margin: 1em 0;
+    padding: 1em;
+    border-radius: 0.5em;
+    border: 1px solid black;
+}
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid black;
+    border-radius: 2em;
+}
+thead th:nth-child(1) {
+  width: 13%;
+}
+
+thead th:nth-child(2) {
+  width: 60%;
+}
+
+thead th:nth-child(3) {
+  width: 35%;
+}
+td, th {
+    padding-left: 0.5em;
+}
+th {
+    border: 1px solid black;
+}
+td {
+    color: darkgray;
+    border: 1px solid black;
+}
+div.contents {
+    margin-left: 2em;
+    margin-right: 2em;
+    font-family: sans-serif;
+}
+input#submit-button {
+    background-color: #99a771;
+    color: white;
+    background-image: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 11em;
+    border: none;
+}
+</style>
+</head>
+<body style="background-color: #faf9f9;">
+<div style="text-align: center; width: 80%; margin: auto; background-color: white; border-radius: 1em; box-shadow: 1px 1px black; max-width: 630px;">
+<div style="background-color: black; color: white;"><h3>DEMO<h3></div>
+<div class="contents">
+<h3 style="text-align: left;">INPUT</h3>
+<form id="myForm" action="" class="form-example">
+  <div class="form-example">
+    <input type="text" name="description" id="description" placeholder="Description" required></input>
+  </div>
+  <div class="form-example">
+    <input type="text" name="brand" id="brand" placeholder="Brand"></input>
+  </div>
+  <div class="form-example" style="display: none;">
+    <label for="topn">Top n: </label>
+    <input type="hidden" value="3" name="topn" id="topn"></input>
+  </div>
+  <div class="form-example">
+    <input id="submit-button" type="submit" value="Submit">
+  </div>
+</form>
+<p id="output"></p>
+</div>
+<section id="outputsection" style="display: none; text-align: left; border-top: 1px solid lightgray; padding-bottom: 2em;">
+<div class="contents">
+<h3>OUTPUT</h3>
+<p>Here are the top 3 best matches. To see the rest of the outputs, contact us for the full experience.</p>
+<table style="padding: 1em; text-align: left;">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Commodity</th>
+            <th>Similarity</th>
+        </tr>
+    </thead>
+    <tbody id="tablebody">
+    </tbody>
+</table>
+</section>
+</div>
+</div>
+<script>
+window.addEventListener( "load", function () {
+  function sendData() {
+
+    // Bind the FormData object and the form element
+    const FD = new FormData( form );
+    const params = new URLSearchParams(FD);
+
+    const code = "uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ=="
+
+    const request = new Request("https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code="+code+"&"+params.toString(), {method: "GET"});
+
+    submit_button = document.getElementById("submit-button");
+    submit_button.style.backgroundImage = 'url("Chromiumthrobber.svg")';
+    submit_button.value = "";
+    
+    fetch(request).then(response => {const reader = response.body.getReader();
+        var result = "";
+        
+        reader.read().then(
+            function processText({ done, value }) {
+                if (done) {
+                    let result_json = JSON.parse(result);
+                    console.log("Text: ", result_json);
+                    //document.getElementById("output").textContent = result;
+
+                    let tablebody = document.getElementById("tablebody");
+                    tablebody.textContent = "";
+
+                    for (let i of [1, 2, 3]) {
+                        let tablerow = document.createElement('tr');
+                        let id = document.createElement("td");
+                        let commodity = document.createElement("td");
+                        let similarity = document.createElement("td");
+
+                        id.textContent = i.toString();
+                        commodity_key = "Commodity"
+                        similarity_key = "Similarity"
+                        if (i > 1) {
+                            commodity_key += " "+i.toString()
+                            similarity_key += " "+i.toString()
+                        }
+                        commodity.textContent = result_json[0][commodity_key];
+                        similarity.textContent = result_json[0][similarity_key];
+                        tablerow.appendChild(id);
+                        tablerow.appendChild(commodity);
+                        tablerow.appendChild(similarity);
+
+                        tablebody.appendChild(tablerow);
+
+                    }
+
+                    document.getElementById("outputsection").style.display = "block";
+                    
+                    submit_button.style.backgroundImage = "none";
+                    submit_button.value = "Try Another";
+
+                    return;
+                }
+                result += new TextDecoder("utf-8").decode(value);
+                return reader.read().then(processText);
+            });
+    });
+
+  }
+
+  // Access the form element...
+  const form = document.getElementById( "myForm" );
+
+  // ...and take over its submit event.
+  form.addEventListener( "submit", function ( event ) {
+    event.preventDefault();
+
+    console.log("Sending data...");
+
+    sendData();
+  } );
+} );
+</script>
+</body>
+
+<!--https://stockmasterapi.azurewebsites.net/api/HttpTrigger1?code=uQEFnhYqGyb/qJvwmSisyO7t8aIdO8F/0dbPA83JfbVIoDL6e9dNxQ==" method="post" enctype="application/x-www-form-urlencoded" -->
