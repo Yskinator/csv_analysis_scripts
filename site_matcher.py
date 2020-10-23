@@ -126,7 +126,7 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
                 desc_matches[str(item_id)] = {}
             #site_to_descs_preprocessed[site][results[0]]["Stock & Site"]
             #desc_matches[str(item_id)][site] = {"Matches": [site_to_descs_preprocessed[site][result]["Stock & Site"] for result in results], "Scores": [score for score in scores]}
-            desc_matches[str(item_id)][site] = {"Matches": results, "Scores": scores}
+            desc_matches[str(item_id)][site] = {"Matches": [all_site_to_descs_preprocessed[site][result]["Stock & Site"] for result in results], "Scores": [score for score in scores]}
     return desc_matches
 
 def combine_desc_matches(matches1, matches2, n):
