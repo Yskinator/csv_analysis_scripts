@@ -45,8 +45,10 @@ def preprocess_all(site_rows):
     for site, rows in site_rows.items():
         desc_to_preprocessed = {}
         for row in rows:
-            desc = row["Stock Description"] + " " + row["OEM Field"]
-            relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
+            desc = row["Stock Description"]
+            desc_and_oem = desc + " " + row["OEM Field"]
+            desc_and_oem = desc_and_oem.strip()
+            relevant_data = {"Preprocessed": preprocess(desc_and_oem, abbrevs), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Stock & Site": row["Stock & Site"]}
             desc_to_preprocessed[desc] = relevant_data
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
