@@ -339,25 +339,39 @@ def generate_constant_csvs(level="Family Name"):
     generate_brand_counts_csv()
 
 if __name__ == "__main__":
-    import sys
+    import argparse
+    # import sys
     import time
-    if len(sys.argv) != 4:
-        print("""
-        Script to allocate items to a UNSPSC product
+    
+    # if len(sys.argv) != 4:
+        # print("""
+        # Script to allocate items to a UNSPSC product
 
-        Use: $ python csv_scripts.py filename.csv level[Segment, Family, Class] num_to_check[int]
+        # Use: $ python csv_scripts.py filename.csv level[Segment, Family, Class] num_to_check[int]
 
-        """)
-        sys.exit()
+        # """)
+        # sys.exit()
+
+    # stime = time.time()
+    # stock_master = file_utils.read_csv(sys.argv[1])
+    # level = sys.argv[2]
+
+    # if len(sys.argv) > 3:
+        # top_categories_to_check_count = int(sys.argv[3])
+    # else:
+        # top_categories_to_check_count = 100
+
+    parser = argparse.ArgumentParser(description="Script to allocate items to a UNSPSC product")
+    parser.add_argument("filename", help="Filename of the csv file to process.")
+    parser.add_argument("-l", "--level", help="Defines the level of top categories to check for matches. Only n categories with the highest probability of containing matches will get checked. Accepts Segment, Family or Class. Default is Segment.", choices=["Segment", "Family", "Class"], default="Segment")
+    parser.add_argument("-n", "--num_to_check", help="Number of top categories to check for each row. Higher values mean slower but more accurate matching. Default value 100.", type=int, default=100)
+    args = parser.parse_args()
+
+    stock_master = file_utils.read_csv(args.filename)
+    level = args.level
+    top_categories_to_check_count = args.num_to_check
 
     stime = time.time()
-    stock_master = file_utils.read_csv(sys.argv[1])
-    level = sys.argv[2]
-
-    if len(sys.argv) > 3:
-        top_categories_to_check_count = int(sys.argv[3])
-    else:
-        top_categories_to_check_count = 100
 
     stock_master = pandas.DataFrame(stock_master)
     df = add_commodities_to_dataframe(stock_master)
