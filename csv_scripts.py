@@ -341,20 +341,26 @@ def generate_constant_csvs(level="Family Name"):
 if __name__ == "__main__":
     import argparse
     import time
-    
+
     parser = argparse.ArgumentParser(description="Script to allocate items to a UNSPSC product")
     parser.add_argument("filename", help="Filename of the csv file to process.")
     parser.add_argument("-l", "--level", help="Defines the level of top categories to check for matches. Only n categories with the highest probability of containing matches will get checked. Accepts Segment, Family or Class. Default is Segment.", choices=["Segment", "Family", "Class"], default="Segment")
     parser.add_argument("-n", "--num_to_check", help="Number of top categories to check for each row. Higher values mean slower but more accurate matching. Default value 100.", type=int, default=100)
     parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form.")
-    
+    parser.add_argument("-j", "--jaccard", help="Sets the Jaccard threshold. If the Jaccard score of the best match is below the threshold, reruns the search for all top categories to find the best possible match. Default value is 0.3.", type=float, default=0.3)
+    parser.add_argument("-m", "--matches", help="How many matches to return for each row. Default is 1.", type=int, default=1)
+    parser.add_argument("-np", "--no_parallel", help="Flag that determines whether to use parallel processing to speed up search.", action="store_true")
+
     args = parser.parse_args()
 
     stock_master = file_utils.read_csv(args.filename)
     level = args.level
     top_categories_to_check_count = args.num_to_check
     output = args.output
-    
+    jac = args.jaccard
+    topn = args.matches
+    parallel = not args.no_parallel
+
     stime = time.time()
 
     if not output:
@@ -362,7 +368,7 @@ if __name__ == "__main__":
         df = add_commodities_to_dataframe(stock_master)
         print(df)
     else:
-        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count)
+        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count, jac, topn, parallel)
         file_utils.save_csv(output, rows, fieldnames=fieldnames)
 
     etime = time.time()
