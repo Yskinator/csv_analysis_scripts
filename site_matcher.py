@@ -233,7 +233,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                         if set(matches["Matches"]) != old_match_set:
                             site_row["Old Row"] = "Yes"
                     for i, (match, score) in enumerate(zip(matches["Matches"], matches["Scores"])):
-                        site_row["Description Match {}".format(str(i))] = match 
+                        site_row["Description Match {}".format(str(i))] = match
                         site_row["Description Match {} Score".format(str(i))] = str(score)
             if not (site_row["Old Row"] == "Unchanged" and exclude_unchanged):
                 final_rows.append(site_row)
@@ -258,7 +258,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
 
     #Missing values should be represented by empty strings
     dataframe = dataframe.fillna(value="")
-    
+
     #Ensure we have the correct columns
     dataframe = pandas.DataFrame(dataframe.to_dict("records"), columns=all_fieldnames())
 
@@ -270,7 +270,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
 
     #Remove extra whitespace
     dataframe = dataframe.applymap(lambda x: x.strip() if type(x)==str else x)
-    
+
     if "Match Site" in dataframe.columns:
         ndf = dataframe[dataframe["Match Site"] == "-1"]
         if ndf.empty:
@@ -299,7 +299,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
     #print('from match_sites_dataframe')
     matches_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
     matches_df = pandas.DataFrame(matches_rows, columns=['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'Old Row', 'Site', 'Stock & Site', 'Stock Code'])
-    
+
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
     matches_df = matches_df[['Description', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score', 'Match Site', 'OEM Code', 'Old Row', 'Site', 'Stock & Site', 'Stock Code']]
@@ -345,6 +345,8 @@ if __name__=="__main__":
     sites_rows = file_utils.read_csv(args.filename)
     output_file = args.output
     matches_json = args.match_data
+    if not matches_json:
+        matches_json = ""
 
     stime = time.time()
 
@@ -367,7 +369,7 @@ if __name__=="__main__":
     #    print(df)
 
     if output_file:
-        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True)
+        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True, matches_json=matches_json)
         result_rows = matches_df.to_dict("records")
         file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
     else:
