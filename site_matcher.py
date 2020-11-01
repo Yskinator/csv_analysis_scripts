@@ -262,15 +262,15 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                     for i, (match, score, match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
                         if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
                             break
-                        for j, match_row in enumerate(match_rows):
+                        for match_row in match_rows:
                             new_row = copy.deepcopy(row_base)
                             new_row["Match Description"] = match
                             new_row["Match Stock & Site"] = match_row
                             new_row["Match Score"] = str(score)
                             new_row["Match Number"] = str(i)
-                            new_row["Match Row Number"] = str(j)
+                            new_row["Matching Row Count"] = str(len(match_rows))
                             final_rows.append(new_row)
-    fieldnames = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Match Row Number"]
+    fieldnames = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
     return (final_rows, fieldnames)
 
 def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json=""):
