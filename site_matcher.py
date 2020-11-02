@@ -9,10 +9,10 @@ import copy
 
 
 def output_fieldnames():
-    return ['Site', 'Match Site', 'Stock & Site', 'OEM Code', 'Stock Code', 'Description', 'Old Row', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score']
+    return ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
 
 def input_fieldnames():
-    return ["Site", "Stock Code", "Stock & Site", "OEM Field", "Stock Description"]
+    return ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 
 def all_fieldnames():
     return list(set(input_fieldnames()) | set(output_fieldnames()))
@@ -24,7 +24,6 @@ def base_rows_from(site_rows):
             base_row = {}
             base_row["Site"] = site
             base_row["Stock & Site"] = row["Stock & Site"]
-            base_row["OEM Code"] = row["OEM Field"]
             base_row["Stock Code"] = row["Stock Code"]
             base_row["Description"] = row["Stock Description"]
             base_rows.append(base_row)
@@ -45,14 +44,12 @@ def preprocess_all(site_rows):
     for site, rows in site_rows.items():
         desc_to_preprocessed = {}
         for row in rows:
-            desc = row["Stock Description"]
-            desc_and_oem = desc + " " + row["OEM Field"]
-            desc_and_oem = desc_and_oem.strip()
+            desc = row["Stock Description"].strip()
             if desc not in desc_to_preprocessed:
-                relevant_data = {"Preprocessed": preprocess(desc_and_oem, abbrevs), "OEM Code": row["OEM Field"], "Stock Code": row["Stock Code"], "Stock & Site": [row["Stock & Site"]]}
+                relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "Stock Code": row["Stock Code"], "Stock & Site": {row["Stock & Site"]}}
                 desc_to_preprocessed[desc] = relevant_data
             else:
-                desc_to_preprocessed[desc]["Stock & Site"].append(row["Stock & Site"])
+                desc_to_preprocessed[desc]["Stock & Site"].add(row["Stock & Site"])
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
 
@@ -89,10 +86,9 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
     for home, rows in site_rows.items():
         for row in rows:
             row_jobs = {}
-            desc = row["Stock Description"] + " " + row["OEM Field"]
+            desc = row["Stock Description"]
             desc = desc.strip()
             preprocessed = preprocess(desc, abbrevs)
-            oem_code = row["OEM Field"]
             for site in site_to_descs_preprocessed:
                 row_jobs[site] = csv_scripts.most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, a_set)
             jobs[row["Stock & Site"]] = row_jobs
@@ -180,10 +176,12 @@ def top_n_matches(m1, m2, n):
             #Update our list of rows this description matches to
             match_index = descs.index(match[0])
             rows = no_duplicate_matches[match_index][2]
-            rows.append(match[2])
-            no_duplicate_matches[match_index][2] = list(set(rows))
+            prev_match = no_duplicate_matches[match_index]
+            rows = rows.union(match[2])
+            new_match = (prev_match[0], prev_match[1], rows)
+            no_duplicate_matches[match_index] = new_match
     result_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
-    for match in all_matches[:n]:
+    for match in no_duplicate_matches[:n]:
         result_matches["Matches"].append(match[0])
         result_matches["Scores"].append(match[1])
         result_matches["Stock & Site"].append(match[2])
@@ -197,11 +195,13 @@ def number(rows, start):
         num += 1
     return rows, num
 
-def find_row(old_item_ids_to_rows, item_id, match_site):
+def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
+    results = []
     if item_id in old_item_ids_to_rows:
         for row in old_item_ids_to_rows[item_id]:
             if row["Match Site"] == match_site:
-                return row
+                results.append(row)
+    return results
 
 def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
     #num = 0
@@ -221,7 +221,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
     for row in rows:
         row = copy.deepcopy(row)
         item_id = str(row["Stock & Site"])
-        oem_code = str(row["OEM Code"])
         all_sites = set()
         if item_id in desc_matches:
             all_sites = all_sites | set(desc_matches[item_id])
@@ -232,33 +231,28 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
             row_base["Stock & Site"] = item_id
             row_base["Site"] = row["Site"]
             row_base["Description"] = row["Description"]
-            old_row = find_row(old_item_ids_to_rows, item_id, site)
-            if old_row:
-                row_base["Old Row"] = "Unchanged"
-            else:
-                row_base["Old Row"] = "No"
+            old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)#TODO: list of rows instead of row
+            old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
+            old_rows = sorted(old_rows, key = lambda r: r["Match Number"])
+            for r in old_rows:
+                if not r["Match Description"] in old_matches["Matches"]:
+                    old_matches["Scores"].append(float(r["Match Score"]))
+                    old_matches["Matches"].append(r["Match Description"])
+                    old_matches["Stock & Site"].append(set())
+                old_matches["Stock & Site"][-1].add(r["Match Stock & Site"])
+
             row_base["Match Site"] = site
             if item_id in desc_matches:
                 if site in desc_matches[item_id]:
                     matches = desc_matches[item_id][site]
-                    if old_row:
-                        old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
-                        old_match_set = set()
-                        for i in range(10):
-                            match = old_row["Description Match {}".format(str(i))]
-                            score = old_row["Description Match {} Score".format(str(i))]
-                            rows = old_row["Description Match {} Rows".format(str(i))]
-                            if not match:
-                                break
-                            old_match_set.add(match)
-                            if match in matches["Matches"]:
-                                continue
-                            old_matches["Matches"].append(matches)
-                            old_matches["Scores"].append(scores)
-                            old_matches["Stock & Site"].append(rows)
+                    if matches == old_matches:
+                        row_base["Old Row"] = "Unchanged"
+                    else:
                         matches = top_n_matches(matches, old_matches, 10)
-                        if set(matches["Matches"]) != old_match_set:
-                            row_base["Old Row"] = "Yes"
+                        for old_row in old_rows:
+                            old_row["Old Row"] = "Yes"
+                            final_rows.append(old_row)
+                        row_base["Old Row"] = "No"
                     for i, (match, score, match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
                         if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
                             break
@@ -344,7 +338,6 @@ def generate_site_to_rows_dict(rows, old=False):
         new_rows = []
         for row in rows:
             row = copy.deepcopy(row)
-            row["OEM Field"] = row["OEM Code"]
             row["Stock Description"] = row["Description"]
             item_id = row["Stock & Site"]
             if item_id not in item_ids:
