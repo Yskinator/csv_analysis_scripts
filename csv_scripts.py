@@ -1,3 +1,6 @@
+import argparse
+import time
+
 import os
 import sys
 import csv
@@ -339,13 +342,10 @@ def generate_constant_csvs(level="Family Name"):
     generate_brand_counts_csv()
 
 if __name__ == "__main__":
-    import argparse
-    import time
-
     parser = argparse.ArgumentParser(description="Script to allocate items to a UNSPSC product")
     parser.add_argument("filename", help="Filename of the csv file to process.")
-    parser.add_argument("-l", "--level", help="Defines the level of top categories to check for matches. Only n categories with the highest probability of containing matches will get checked. Accepts Segment, Family or Class. Default is Segment.", choices=["Segment", "Family", "Class"], default="Segment")
-    parser.add_argument("-n", "--num_to_check", help="Number of top categories to check for each row. Higher values mean slower but more accurate matching. Default value 100.", type=int, default=100)
+    parser.add_argument("-l", "--level", help="Defines the level of top categories to check for matches. Only n categories with the highest probability of containing matches will get checked. Accepts Segment, Family or Class. Default is Family.", choices=["Segment", "Family", "Class"], default="Family")
+    parser.add_argument("-n", "--num_to_check", help="Number of top categories to check for each row. Higher values mean slower but more accurate matching. Default value 25.", type=int, default=25)
     parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form.")
     parser.add_argument("-j", "--jaccard", help="Sets the Jaccard threshold. If the Jaccard score of the best match is below the threshold, reruns the search for all top categories to find the best possible match. Default value is 0.3.", type=float, default=0.3)
     parser.add_argument("-m", "--matches", help="How many matches to return for each row. Default is 1.", type=int, default=1)

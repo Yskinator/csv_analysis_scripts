@@ -1,12 +1,14 @@
-import file_utils
-import csv_scripts
-from collections import defaultdict, OrderedDict
+import argparse
 import concurrent.futures
 import pandas
 import sys
 import time
 import copy
 
+from collections import defaultdict, OrderedDict
+
+import file_utils
+import csv_scripts
 
 def output_fieldnames():
     return ['Site', 'Match Site', 'Stock & Site', 'OEM Code', 'Stock Code', 'Description', 'Old Row', 'Description Match 0', 'Description Match 0 Score', 'Description Match 1', 'Description Match 1 Score', 'Description Match 2', 'Description Match 2 Score', 'Description Match 3', 'Description Match 3 Score', 'Description Match 4', 'Description Match 4 Score', 'Description Match 5', 'Description Match 5 Score', 'Description Match 6', 'Description Match 6 Score', 'Description Match 7', 'Description Match 7 Score', 'Description Match 8', 'Description Match 8 Score', 'Description Match 9', 'Description Match 9 Score']
@@ -333,12 +335,10 @@ def generate_site_to_rows_dict(rows, old=False):
     return site_to_rows
 
 if __name__=="__main__":
-    import argparse
-
     parser = argparse.ArgumentParser(description="Script to match similar rows in data from different sites.")
     parser.add_argument("filename", help="Filename of the csv file to process.")
     parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form. If output file already exists, the new results are combined to the already existing ones.")
-    parser.add_argument("-d", "--match_data", help="Filename of json containing old matches. Generating the description matches in match_data is by far the slowest part, so it is recommended to save it when expecting re-use.")
+    parser.add_argument("-d", "--match_data", help="Filename of json with old matches. If file already exists, read it. If file does not exist, create one based on the results of this run. Generating the description matches in match_data is by far the slowest part, so it is recommended to save it when expecting re-use.")
 
     args = parser.parse_args()
 
