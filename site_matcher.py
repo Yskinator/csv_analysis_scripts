@@ -95,8 +95,6 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
     return jobs
 
 def match_by_description(site_rows, old_site_rows):
-    print("Match_by_description")
-    #site_rows = exclude_oem_matches(site_rows, oem_dict)
     site_to_descs_preprocessed = preprocess_all(site_rows)
     old_site_to_descs_preprocessed = preprocess_all(old_site_rows)
     all_site_to_descs_preprocessed = {}
