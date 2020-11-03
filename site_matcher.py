@@ -261,7 +261,9 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             new_row["Match Score"] = str(score)
                             new_row["Match Number"] = str(i)
                             new_row["Matching Row Count"] = str(len(match_rows))
-                            final_rows.append(new_row)
+                            #Prevent duplicate rows. TODO: Figure out how this happens.
+                            if not new_row in final_rows:
+                                final_rows.append(new_row)
     fieldnames = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
     return (final_rows, fieldnames)
 
