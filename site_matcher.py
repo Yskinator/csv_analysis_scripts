@@ -10,14 +10,11 @@ from collections import defaultdict, OrderedDict
 import file_utils
 import csv_scripts
 
-def output_fieldnames():
-    return ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
+OUTPUT_FIELDNAMES = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
 
-def input_fieldnames():
-    return ["Site", "Stock Code", "Stock & Site", "Stock Description"]
+INPUT_FIELDNAMES = ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 
-def all_fieldnames():
-    return list(set(input_fieldnames()) | set(output_fieldnames()))
+ALL_FIELDNAMES = list(set(INPUT_FIELDNAMES) | set(OUTPUT_FIELDNAMES))
 
 def base_rows_from(site_rows):
     base_rows = []
@@ -266,11 +263,10 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             #Prevent duplicate rows. TODO: Figure out how this happens.
                             if not new_row in final_rows:
                                 final_rows.append(new_row)
-    fieldnames = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
 
-    return (final_rows, fieldnames)
+    return final_rows
 
-def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json=""):
+def match_sites_dataframe(dataframe, matches_json=""):
     '''
     Generates a dataframe of matched sites.
     matches_json is an optional parameter for saving and loading slow to generate
@@ -286,7 +282,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
     dataframe = dataframe.fillna(value="")
 
     #Ensure we have the correct columns
-    dataframe = pandas.DataFrame(dataframe.to_dict("records"), columns=all_fieldnames())
+    dataframe = pandas.DataFrame(dataframe.to_dict("records"), columns=ALL_FIELDNAMES)
 
     #Fill any columns we just added with "-1" to mark it wasn't originally there
     dataframe = dataframe.fillna(value="-1")
@@ -323,16 +319,12 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
-    matches_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
-    matches_df = pandas.DataFrame(matches_rows, columns=fieldnames)
+    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
+    matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
-    matches_df = matches_df[fieldnames]
-
-    if return_fieldnames:
-        return matches_df, fieldnames
-    else:
-        return matches_df
+    matches_df = matches_df[OUTPUT_FIELDNAMES]
+    return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
     if old:
@@ -391,9 +383,9 @@ if __name__=="__main__":
     #    print(df)
 
     if output_file:
-        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True, matches_json=matches_json)
+        matches_df = match_sites_dataframe(df, matches_json=matches_json)
         result_rows = matches_df.to_dict("records")
-        file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
+        file_utils.save_csv(output_file, result_rows, fieldnames=OUTPUT_FIELDNAMES)
     else:
         matches_df = match_sites_dataframe(df)
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also

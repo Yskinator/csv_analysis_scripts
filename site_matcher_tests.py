@@ -75,7 +75,7 @@ def correct_input_2_rows_only_1_site():
     rows[1]["Site"] = "Site A"
     return rows
 
-def match(rows, fieldnames = site_matcher.all_fieldnames()):
+def match(rows, fieldnames = site_matcher.ALL_FIELDNAMES):
     df = pandas.DataFrame(rows, columns = fieldnames)
     df = df.fillna(value="-1")
     df_out = site_matcher.match_sites_dataframe(df)
@@ -116,7 +116,7 @@ def match_1_empty_description_3_rows():
 
 def match_1_None_Description_3_rows():
     rows = one_None_description_3_rows()
-    fieldnames = site_matcher.input_fieldnames()
+    fieldnames = site_matcher.INPUT_FIELDNAMES
     df = pandas.DataFrame(rows, columns = fieldnames)
     df_out = site_matcher.match_sites_dataframe(df)
     output_rows = df_out.to_dict("records")
@@ -124,7 +124,7 @@ def match_1_None_Description_3_rows():
 
 def match_missing_description_2_rows():
     rows = missing_description_2_rows()
-    fieldnames = site_matcher.input_fieldnames().remove("Stock Description")
+    fieldnames = site_matcher.INPUT_FIELDNAMES.remove("Stock Description")
     return match(rows, fieldnames=fieldnames)
 
 def drop_old_rows(rows):
@@ -194,7 +194,7 @@ class IntegrationTestCase(unittest.TestCase):
             self.assertIn("Matching Row Count", keys)
 
     def assert_output_fieldnames_correct(self, rows):
-        fieldnames = site_matcher.output_fieldnames()
+        fieldnames = site_matcher.OUTPUT_FIELDNAMES
         for row in rows:
             for fn in fieldnames:
                 self.assertIn(fn, row)
@@ -521,4 +521,4 @@ class TopNMatchesUnitTest(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
     #import file_utils
-    #file_utils.save_csv("test_out.csv", match_1_None_Description_3_rows(), fieldnames=site_matcher.output_fieldnames())
+    #file_utils.save_csv("test_out.csv", match_1_None_Description_3_rows(), fieldnames=site_matcher.OUTPUT_FIELDNAMES)
