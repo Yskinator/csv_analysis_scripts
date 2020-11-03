@@ -1,12 +1,14 @@
-import file_utils
-import csv_scripts
-from collections import defaultdict, OrderedDict
+import argparse
 import concurrent.futures
 import pandas
 import sys
 import time
 import copy
 
+from collections import defaultdict, OrderedDict
+
+import file_utils
+import csv_scripts
 
 def output_fieldnames():
     return ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
@@ -265,6 +267,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             if not new_row in final_rows:
                                 final_rows.append(new_row)
     fieldnames = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
+
     return (final_rows, fieldnames)
 
 def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json=""):
@@ -281,7 +284,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
 
     #Missing values should be represented by empty strings
     dataframe = dataframe.fillna(value="")
-    
+
     #Ensure we have the correct columns
     dataframe = pandas.DataFrame(dataframe.to_dict("records"), columns=all_fieldnames())
 
@@ -293,7 +296,7 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
 
     #Remove extra whitespace
     dataframe = dataframe.applymap(lambda x: x.strip() if type(x)==str else x)
-    
+
     if "Match Site" in dataframe.columns:
         ndf = dataframe[dataframe["Match Site"] == "-1"]
         if ndf.empty:
@@ -322,7 +325,6 @@ def match_sites_dataframe(dataframe, return_fieldnames = False, matches_json="")
     #print('from match_sites_dataframe')
     matches_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
     matches_df = pandas.DataFrame(matches_rows, columns=fieldnames)
-    
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
     matches_df = matches_df[fieldnames]
@@ -355,33 +357,21 @@ def generate_site_to_rows_dict(rows, old=False):
     return site_to_rows
 
 if __name__=="__main__":
-    if len(sys.argv) < 3:#4:
-        print("""
-        Script to match similar rows in data from different sites.
+    parser = argparse.ArgumentParser(description="Script to match similar rows in data from different sites.")
+    parser.add_argument("filename", help="Filename of the csv file to process.")
+    parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form. If output file already exists, the new results are combined to the already existing ones.")
+    parser.add_argument("-d", "--match_data", help="Filename of json with old matches. If file already exists, read it. If file does not exist, create one based on the results of this run. Generating the description matches in match_data is by far the slowest part, so it is recommended to save it when expecting re-use.")
 
-        Use: $ python oem_connecter.py sites.csv ouput.csv (optional) save_csv (optional)match_data.json
+    args = parser.parse_args()
 
-        Save_csv should be "yes" or "no", depending on whether you want to save
-        the results to a csv file or not.
-        Generating the description matches in match_data is by far the slowest part, so save it when expecting to re-use!
-        """)
-        sys.exit()
-    #Use: $ python oem_connecter.py site1.csv site2.csv ouput.csv (optional)match_data.json
-    #sqmo_file = sys.argv[1] #"FQMO.csv"
-    #kalumbila_file = sys.argv[2] #"Kalumbila.csv"
+    sites_rows = file_utils.read_csv(args.filename)
+    output_file = args.output
+    matches_json = args.match_data
+    if not matches_json:
+        matches_json = ""
+
     stime = time.time()
-    sites_file = sys.argv[1]
-    output_file = sys.argv[2]#[3] #"OEM_Match_Results.csv"
-    matches_json = ""
-    if len(sys.argv) >= 4: #5:
-        save_csv = sys.argv[3]
-        if len(sys.argv) == 5:
-            matches_json = sys.argv[4]
-    else:
-        save_csv = "no"
-    #fqmo_rows = file_utils.read_csv(sqmo_file)
-    #kalumbila_rows = file_utils.read_csv(kalumbila_file)
-    sites_rows = file_utils.read_csv(sites_file)
+
     if file_utils.file_exists(output_file):
         old_rows = file_utils.read_csv(output_file)
     else:
@@ -399,8 +389,9 @@ if __name__=="__main__":
     df = pandas.concat([ndf, odf]).reset_index(drop=True)
     #with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
     #    print(df)
-    if save_csv.lower() == "yes":
-        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True)
+
+    if output_file:
+        matches_df, fieldnames = match_sites_dataframe(df, return_fieldnames = True, matches_json=matches_json)
         result_rows = matches_df.to_dict("records")
         file_utils.save_csv(output_file, result_rows, fieldnames=fieldnames)
     else:

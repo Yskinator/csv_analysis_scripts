@@ -35,7 +35,7 @@ def save_csv(filename, rows, mode = "w", fieldnames = []):
     exists = False
     if os.path.isfile(filename) and mode == "a":
        exists = True
-    with open(filename, mode, encoding="utf-8-sig") as  fo:
+    with open(filename, mode, encoding="utf-8-sig", newline="") as  fo:
         if fieldnames == []:
             w = csv.DictWriter(fo, fieldnames = list(rows[0].keys()))
         else:
