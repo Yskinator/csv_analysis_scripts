@@ -253,16 +253,16 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             old_row["Old Row"] = "Yes"
                             final_rows.append(old_row)
                         row_base["Old Row"] = "No"
-                    for i, (match, score, match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
+                    for i, (match, score, desc_match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
                         if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
                             break
-                        for match_row in match_rows:
+                        for match_row in desc_match_rows:
                             new_row = copy.deepcopy(row_base)
                             new_row["Match Description"] = match
                             new_row["Match Stock & Site"] = match_row
                             new_row["Match Score"] = str(score)
                             new_row["Match Number"] = str(i)
-                            new_row["Matching Row Count"] = str(len(match_rows))
+                            new_row["Matching Row Count"] = str(len(desc_match_rows))
                             #Prevent duplicate rows. TODO: Figure out how this happens.
                             if not new_row in final_rows:
                                 final_rows.append(new_row)
