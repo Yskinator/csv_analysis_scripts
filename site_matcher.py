@@ -261,8 +261,8 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                             new_row["Match Number"] = str(i)
                             new_row["Matching Row Count"] = str(len(desc_match_rows))
                             #Prevent duplicate rows. TODO: Figure out how this happens.
-                            if not new_row in final_rows:
-                                final_rows.append(new_row)
+                            #if not new_row in final_rows:
+                            final_rows.append(new_row)
 
     return final_rows
 
