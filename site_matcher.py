@@ -228,7 +228,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
             row_base["Stock & Site"] = item_id
             row_base["Site"] = row["Site"]
             row_base["Description"] = row["Description"]
-            old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)#TODO: list of rows instead of row
+            old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)
             old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
             old_rows = sorted(old_rows, key = lambda r: r["Match Number"])
             for r in old_rows:
