@@ -82,29 +82,29 @@ def match(rows, fieldnames = site_matcher.ALL_FIELDNAMES):
     output_rows = df_out.to_dict("records")
     return sorted(output_rows, key = lambda row: row["Site"])
 
-def match_2_correct_inputs():
+def match_2_inputs():
     rows = correct_input_2_rows()
     return match(rows)
 
-def match_2_correct_inputs_with_whitespace():
+def match_2_inputs_with_whitespace():
     rows = correct_input_2_rows_with_whitespace()
     return match(rows)
 
-def match_2_correct_inputs_only_1_site():
+def match_2_inputs_only_1_site():
     rows = correct_input_2_rows_only_1_site()
     return match(rows)
 
-def match_3_correct_inputs():
+def match_3_inputs():
     rows = correct_input_3_rows()
     return match(rows)
 
-def match_2_correct_inputs_and_outputs():
+def match_2_inputs_and_outputs():
     rows_in = correct_input_2_rows()
     rows_out = correct_output_2_rows()
     rows = rows_in + rows_out
     return match(rows)
 
-def match_2_correct_inputs_and_3_outputs_1_unchanged():
+def match_2_inputs_and_3_outputs_1_unchanged():
     rows_in = correct_input_2_rows()
     rows_out = correct_output_3_rows_1_unchanged()
     rows = rows_in + rows_out
@@ -142,12 +142,12 @@ class IntegrationTestCase(unittest.TestCase):
     def setUpClass(cls):
         """Matching sites is slow - let's re-use results where we can."""
         super(IntegrationTestCase, cls).setUpClass()
-        cls.correct_input_2_rows_output = match_2_correct_inputs()
-        cls.correct_input_2_rows_whitespace_output = match_2_correct_inputs_with_whitespace()
-        cls.correct_input_2_rows_only_1_site_output = match_2_correct_inputs_only_1_site()
-        cls.correct_input_3_rows_output = match_3_correct_inputs()
-        cls.correct_2_inputs_and_outputs_output = match_2_correct_inputs_and_outputs()
-        cls.correct_2_inputs_3_outputs_1_unchanged_output = match_2_correct_inputs_and_3_outputs_1_unchanged()
+        cls.correct_input_2_rows_output = match_2_inputs()
+        cls.correct_input_2_rows_whitespace_output = match_2_inputs_with_whitespace()
+        cls.correct_input_2_rows_only_1_site_output = match_2_inputs_only_1_site()
+        cls.correct_input_3_rows_output = match_3_inputs()
+        cls.correct_2_inputs_and_outputs_output = match_2_inputs_and_outputs()
+        cls.correct_2_inputs_3_outputs_1_unchanged_output = match_2_inputs_and_3_outputs_1_unchanged()
         cls.one_empty_description_3_rows_output = match_1_empty_description_3_rows()
         cls.one_None_description_3_rows_output = match_1_None_Description_3_rows()
         cls.missing_description_2_rows_output = match_missing_description_2_rows()
@@ -235,7 +235,7 @@ class IntegrationTestCase(unittest.TestCase):
         self.assertEqual(r30["Match Description"], "Thingamajig")
         self.assertEqual(r30["Match Score"], "0.3333333333333333")
 
-    def assert_description_match_2_correct_inputs_and_outputs_correct(self, r10, r11, r20, r21, r30, r31, r40, r41):
+    def assert_description_match_2_inputs_and_outputs_correct(self, r10, r11, r20, r21, r30, r31, r40, r41):
         self.assertEqual(r10["Match Description"], "Thingamajig")
         self.assertEqual(r10["Match Score"], "1.0")
         self.assertEqual(r11["Match Description"], "Thingamajig The Fourth")
@@ -272,106 +272,106 @@ class IntegrationTestCase(unittest.TestCase):
                         if match == row["Stock & Site"]:
                             self.assertEqual(score, "0.0")
 
-    def test_correct_input_2_rows_persistent_columns_exist(self):
+    def test_2_rows_persistent_columns_exist(self):
         rows = self.correct_input_2_rows_output
         self.assert_persistent_columns_exist(rows)
 
-    def test_correct_input_2_rows_persistent_columns_correct(self):
+    def test_2_rows_persistent_columns_correct(self):
         rows = self.correct_input_2_rows_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_persistent_columns_correct_2_rows(r1, r2)
 
-    def test_correct_input_2_rows_10_description_match_columns(self):
+    def test_2_rows_match_columns_exist(self):
         rows = self.correct_input_2_rows_output
         self.assert_match_columns_exist(rows)
 
-    def test_correct_input_2_rows_new_columns_exist(self):
+    def test_2_rows_new_columns_exist(self):
         rows = self.correct_input_2_rows_output
         self.assert_new_columns_exist(rows)
 
-    def test_correct_input_2_rows_match_site_correct(self):
+    def test_2_rows_match_site_correct(self):
         rows = self.correct_input_2_rows_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_match_site_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_description_match_correct(self):
+    def test_2_rows_description_match_correct(self):
         rows = self.correct_input_2_rows_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_description_match_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_old_row_correct(self):
+    def test_2_rows_old_row_correct(self):
         rows = self.correct_input_2_rows_output
         self.assert_old_rows_no(rows)
 
-    def test_correct_input_2_rows_whitespace_persistent_columns_exist(self):
+    def test_2_rows_whitespace_persistent_columns_exist(self):
         rows = self.correct_input_2_rows_whitespace_output
         self.assert_persistent_columns_exist(rows)
 
-    def test_correct_input_2_rows_whitespace_persistent_columns_correct(self):
+    def test_2_rows_whitespace_persistent_columns_correct(self):
         rows = self.correct_input_2_rows_whitespace_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_persistent_columns_correct_2_rows(r1, r2)
 
-    def test_correct_input_2_rows_whitespace_10_description_match_columns(self):
+    def test_2_rows_whitespace_match_columns_exist(self):
         rows = self.correct_input_2_rows_whitespace_output
         self.assert_match_columns_exist(rows)
 
-    def test_correct_input_2_rows_whitespace_new_columns_exist(self):
+    def test_2_rows_whitespace_new_columns_exist(self):
         rows = self.correct_input_2_rows_whitespace_output
         self.assert_new_columns_exist(rows)
 
-    def test_correct_input_2_rows_whitespace_match_site_correct(self):
+    def test_2_rows_whitespace_match_site_correct(self):
         rows = self.correct_input_2_rows_whitespace_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_match_site_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_whitespace_description_match_correct(self):
+    def test_2_rows_whitespace_description_match_correct(self):
         rows = self.correct_input_2_rows_whitespace_output
         r1 = rows[0]
         r2 = rows[1]
         self.assert_description_match_2_rows_correct(r1, r2)
 
-    def test_correct_input_2_rows_whitespace_old_row_correct(self):
+    def test_2_rows_whitespace_old_row_correct(self):
         rows = self.correct_input_2_rows_whitespace_output
         self.assert_old_rows_no(rows)
 
-    def test_correct_input_2_rows_only_1_site_empty(self):
+    def test_2_rows_only_1_site_empty(self):
         rows = self.correct_input_2_rows_only_1_site_output
         self.assertEqual([], rows)
 
-    def test_correct_input_3_rows_correct_columns(self):
+    def test_3_rows_correct_columns(self):
         rows = self.correct_input_3_rows_output
         self.assert_output_fieldnames_correct(rows)
 
-    #def test_correct_input_3_rows_match_site_not_site(self):
+    #def test_3_rows_match_site_not_site(self):
     #    rows = self.correct_input_3_rows_output
     #    self.assert_match_site_not_site(rows)
 
-    def test_correct_input_3_rows_description_matches_correct(self):
+    def test_3_rows_description_matches_correct(self):
         rows = self.correct_input_3_rows_output
         self.assert_description_match_3_rows_correct(rows[0], rows[1], rows[2], rows[3])
 
-    def test_correct_2_inputs_and_outputs_things_that_should_always_be_true(self):
+    def test_2_inputs_and_outputs_things_that_should_always_be_true(self):
         rows = self.correct_2_inputs_and_outputs_output
         self.assert_things_that_should_always_be_true(rows)
 
-    def test_correct_2_inputs_and_outputs_description_matches_correct(self):
+    def test_2_inputs_and_outputs_description_matches_correct(self):
         rows = self.correct_2_inputs_and_outputs_output
         rows = drop_old_rows(rows)
         self.assertEqual(len(rows), 8)
         r10, r11, r20, r21, r30, r31, r40, r41 = rows
-        self.assert_description_match_2_correct_inputs_and_outputs_correct(r10, r11, r20, r21, r30, r31, r40, r41)
+        self.assert_description_match_2_inputs_and_outputs_correct(r10, r11, r20, r21, r30, r31, r40, r41)
         
-    def test_correct_2_inputs_3_outputs_1_unchanged_things_that_should_always_be_true(self):
+    def test_2_inputs_3_outputs_1_unchanged_things_that_should_always_be_true(self):
         rows = self.correct_2_inputs_3_outputs_1_unchanged_output
         self.assert_things_that_should_always_be_true(rows)
 
-    def test_correct_2_inputs_3_outputs_1_unchanged_description_matches_correct(self):
+    def test_2_inputs_3_outputs_1_unchanged_description_matches_correct(self):
         rows = self.correct_2_inputs_3_outputs_1_unchanged_output
         rows = drop_old_rows(rows)
         self.assertEqual(len(rows), 6)
