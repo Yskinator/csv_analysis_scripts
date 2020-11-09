@@ -124,11 +124,10 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
                 desc_matches[str(item_id)] = {}
             #site_to_descs_preprocessed[site][results[0]]["Stock & Site"]
             #desc_matches[str(item_id)][site] = {"Matches": [site_to_descs_preprocessed[site][result]["Stock & Site"] for result in results], "Scores": [score for score in scores]}
-            desc_matches[str(item_id)][site] = {"Matches": results, "Scores": scores}
+            desc_matches[str(item_id)][site] = {"Matches": results, "Scores": scores, "Stock & Site": []}
             for result in results:
-                if not "Stock & Site" in desc_matches[str(item_id)][site]:
-                    desc_matches[str(item_id)][site]["Stock & Site"] = []
-                desc_matches[str(item_id)][site]["Stock & Site"].append(all_site_to_descs_preprocessed[site][result]["Stock & Site"])
+                stock_and_site = all_site_to_descs_preprocessed[site][result]["Stock & Site"]
+                desc_matches[str(item_id)][site]["Stock & Site"].append(stock_and_site)
     return desc_matches
 
 def combine_desc_matches(matches1, matches2, n):
