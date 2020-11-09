@@ -310,16 +310,21 @@ def remove_temp_files():
     for f in tmp_files:
         os.remove(f)
 
-def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold=0.3, topn=1, parallel=True):
+def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold=0.3, topn=1, parallel=True, skip_preprocessing=False):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     generate_constant_csvs(level)
     preprocessed = generate_preprocessed_stocks(stock_master)
+    if skip_preprocessing:
+        preprocessed = stock_master
     brand_counts = count_field(stock_master, "Brand")
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
     stock_with_top_categories = top_category_matcher.match_preprocessed_to_top_categories(preprocessed, top_category_strings, brand_counts, tc_to_check_count = tc_to_check_count)
     print("Matching commodities")
     stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold=jaccard_threshold, topn=topn, parallel=parallel)
     rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
+    if skip_preprocessing:
+        rows = stock_with_commodities
+        fieldnames = list(stock_with_commodities[0].keys())
     return (rows, fieldnames)
 
 def add_commodities_to_dataframe(df):
@@ -350,16 +355,19 @@ if __name__ == "__main__":
     parser.add_argument("-j", "--jaccard", help="Sets the Jaccard threshold. If the Jaccard score of the best match is below the threshold, reruns the search for all top categories to find the best possible match. Default value is 0.3.", type=float, default=0.3)
     parser.add_argument("-m", "--matches", help="How many matches to return for each row. Default is 1.", type=int, default=1)
     parser.add_argument("-np", "--no_parallel", help="Flag that determines whether to use parallel processing to speed up search.", action="store_true")
+    parser.add_argument("-a", "--add_ids", help="Flag that determines whether to add an id column to the data read from the input csv.", action="store_true")
+    parser.add_argument("-s", "--skip_preprocessing", help="If set, skip preprocessing steps. This will slow down the processing.", action="store_true")
 
     args = parser.parse_args()
 
-    stock_master = file_utils.read_csv(args.filename)
+    stock_master = file_utils.read_csv(args.filename, add_ids=args.add_ids)
     level = args.level
     top_categories_to_check_count = args.num_to_check
     output = args.output
     jac = args.jaccard
     topn = args.matches
     parallel = not args.no_parallel
+    skip_preprocessing = args.skip_preprocessing
 
     stime = time.time()
 
@@ -368,8 +376,12 @@ if __name__ == "__main__":
         df = add_commodities_to_dataframe(stock_master)
         print(df)
     else:
-        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count, jac, topn, parallel)
-        file_utils.save_csv(output, rows, fieldnames=fieldnames)
+        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count, jac, topn, parallel, skip_preprocessing)
+        try:
+            file_utils.save_csv(output, rows, fieldnames=fieldnames)
+        except ValueError:
+            print("Warning: row dictionaries contain keys not in fieldnames. Ignoring fieldnames...")
+            file_utils.save_csv(output, rows)
 
     etime = time.time()
     ttime = etime-stime
