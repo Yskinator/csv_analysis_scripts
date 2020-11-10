@@ -340,7 +340,20 @@ def unpivot_stocks(stocks):
     Returns:
     A list of dictionaries representing rows with each commodity on its own row
     """
-    new_stocks = [{**stock, "Match Number": "1"} for stock in stocks]
+    new_stocks = []
+    for stock in stocks:
+        base_items = {key: val for (key, val) in stock.items() if "Commodity" not in key and "Jaccard" not in key}
+        new_stock = {**base_items, "Commodity": stock["Commodity"], "Commodity Code": stock["Commodity Code"], "Jaccard": stock["Jaccard"], "Match Number": "1"}
+        new_stocks.append(new_stock)
+
+        i = 2
+        while True:
+            if "Commodity "+str(i) in stock:
+                new_stock = {**base_items, "Commodity": stock["Commodity "+str(i)], "Commodity Code": stock["Commodity Code "+str(i)], "Jaccard": stock["Jaccard "+str(i)], "Match Number": str(i)}
+                new_stocks.append(new_stock)
+            else:
+                break
+            i = i+1
     return new_stocks
 
 def remove_temp_files():
@@ -362,6 +375,7 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     rows = map_preprocessed_to_original(stock_master, stock_with_commodities)
     if skip_preprocessing:
         rows = stock_with_commodities
+    rows = unpivot_stocks(rows)
     fieldnames = order_fieldnames(rows)
     return (rows, fieldnames)
 
