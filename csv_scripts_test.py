@@ -4,67 +4,51 @@ import unittest
 import copy
 from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original
 
-# class AddCommoditiesToStocksTestCase(unittest.TestCase):
-    # """Test cases for add_commodities_to_stocks."""
+class AddCommoditiesToStocksTestCase(unittest.TestCase):
+    """Test cases for add_commodities_to_stocks."""
 
-    # def setUp(self):
-        # """Set up needed variables."""
-        # pass
+    def test_should_not_affect_input(self):
+        """Should not modify input list in place."""
+        stock = [{"text": "circuit", "id": "1", "Brand": ""}]
+        stock_copy = copy.deepcopy(stock)
+        output = add_commodities_to_stocks(stock)
+        assert stock == stock_copy
 
-    # def tearDown(self):
-        # """Clean-up for next test case."""
-        # pass
+    def test_output_contains_all_input_keys(self):
+        """All keys in input dictionaries should also exist in output dictionaries."""
+        stock = [{"text": "circuit", "id": "1", "Brand": ""}]
+        output = add_commodities_to_stocks(stock)
+        assert all([key in output[0][0] for key in stock[0]])
 
-    # def test_should_not_affect_input(self):
-        # """Should not modify input list in place."""
-        # stock = [{"text": "circuit", "id": "1", "Brand": ""}]
-        # stock_copy = copy.deepcopy(stock)
-        # output = add_commodities_to_stocks(stock)
-        # assert stock == stock_copy
+    def test_output_contains_extra_columns(self):
+        """Output should contain extra columns when topn > 1."""
+        stock = [{"text": "circuit", "id": "1", "Brand": ""}]
+        output = add_commodities_to_stocks(stock, topn=3)
+        assert all([key in output[0][0] for key in ("Jaccard", "Jaccard 2", "Jaccard 3", "Commodity Code 2", "Commodity 3")])
 
-    # def test_output_contains_all_input_keys(self):
-        # """All keys in input dictionaries should also exist in output dictionaries."""
-        # stock = [{"text": "circuit", "id": "1", "Brand": ""}]
-        # output = add_commodities_to_stocks(stock)
-        # assert all([key in output[0][0] for key in stock[0]])
+class MatchCommoditiesTestCase(unittest.TestCase):
+    """Test cases for match_commodities."""
 
-    # def test_output_contains_extra_columns(self):
-        # """Output should contain extra columns when topn > 1."""
-        # stock = [{"text": "circuit", "id": "1", "Brand": ""}]
-        # output = add_commodities_to_stocks(stock, topn=3)
-        # assert all([key in output[0][0] for key in ("Jaccard", "Jaccard 2", "Jaccard 3", "Commodity Code 2", "Commodity 3")])
+    def test_output_contains_all_input_keys(self):
+        """All the keys in the input dictionaries should also exist in the output dictionaries."""
+        stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
+            assert all([key in output[0] for key in stock[0]])
 
-# class MatchCommoditiesTestCase(unittest.TestCase):
-    # """Test cases for match_commodities."""
+    def test_output_contains_extra_keys(self):
+        """Output should contain keys Commodity, Commodity Code and Jaccard."""
+        stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
+            assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
 
-    # def setUp(self):
-        # """Set up needed variables."""
-        # pass
-
-    # def tearDown(self):
-        # """Clean-up for next test case."""
-        # pass
-
-    # def test_output_contains_all_input_keys(self):
-        # """All the keys in the input dictionaries should also exist in the output dictionaries."""
-        # stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
-        # for parallel in (True, False):
-            # output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
-            # assert all([key in output[0] for key in stock[0]])
-
-    # def test_output_contains_extra_keys(self):
-        # """Output should contain keys Commodity, Commodity Code and Jaccard."""
-        # stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
-        # for parallel in (True, False):
-            # output = match_commodities(stock, jaccard_threshold=0.3, topn=1, parallel=parallel)
-            # assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard")])
-
-    # def test_output_contains_all_extra_keys(self):
-        # """Output should contain Commodity etc. for each result when multiple top results wanted."""
-        # stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
-        # for parallel in (True, False):
-            # output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel, topn=2)
-            # assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+    def test_output_contains_all_extra_keys(self):
+        """Output should contain Commodity etc. for each result when multiple top results wanted."""
+        stock = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": ""}]
+        for parallel in (True, False):
+            output = match_commodities(stock, jaccard_threshold=0.3, parallel=parallel, topn=2)
+            assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
 
 class MapPreprocessedToOriginalTestCase(unittest.TestCase):
     """Test cases for map_preprocessed_to_original."""
