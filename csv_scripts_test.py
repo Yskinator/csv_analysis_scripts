@@ -93,5 +93,13 @@ class UnpivotStocksTestCase(unittest.TestCase):
         stocks_with_match_num = [{**stocks[0], "Match Number": "1"}]
         assert unpivot_stocks(stocks) == stocks_with_match_num
 
+    def test_multiple_commodities_on_multiple_rows(self):
+        """If the rows in the input stocks contain mulltiple commodities, convert each row to multiple rows with appropriate Match Number."""
+        stocks = [{"text": "circuit", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Commodity 2": "Track circuit", "Commodity Code 2": "400", "Jaccard 2": "0.5"}]
+        # The expression **stocks[0] includes all keys and values from dict stocks[0]
+        stocks_with_match_num = [{"text": "circuit", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Match Number": "1"},
+                                                    {"text": "circuit", "Commodity": "Track circuit", "Commodity Code": "400", "Jaccard": "0.5", "Match Number": "2"}]
+        assert unpivot_stocks(stocks) == stocks_with_match_num
+
 if __name__ == "__main__":
     unittest.main()
