@@ -2,7 +2,7 @@
 
 import unittest
 import copy
-from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original
+from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original, order_fieldnames
 
 class AddCommoditiesToStocksTestCase(unittest.TestCase):
     """Test cases for add_commodities_to_stocks."""
@@ -58,14 +58,18 @@ class MapPreprocessedToOriginalTestCase(unittest.TestCase):
         original = [{"text": "circuit", "id": "1", "Brand": ""}]
         with_commodities = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": "", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Commodity 2": "Track circuit", "Commodity Code 2": "400", "Jaccard 2": "0.5"}]*3
         output = map_preprocessed_to_original(original, with_commodities)
-        assert all([key in output[0][0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+        assert all([key in output[0] for key in ("Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2")])
+
+class OrderFieldnamesTestCase(unittest.TestCase):
+    """Test cases for order_fieldnames."""
 
     def test_fieldnames_contain_all_extra_keys_ordered(self):
         """Output fieldnames should contain all the extra column names with Commodity, Commodity Code and Jaccard in stock_with_commodities in the right order."""
         original = [{"text": "circuit", "id": "1", "Brand": ""}]
         with_commodities = [{"Description": "circuit", "id": "1", "Top Categories": "Electronic Components and Supplies", "Brands": "", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99", "Commodity 2": "Track circuit", "Commodity Code 2": "400", "Jaccard 2": "0.5"}]*3
         output = map_preprocessed_to_original(original, with_commodities)
-        assert output[1] == ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2"]
+        fieldnames = order_fieldnames(output)
+        assert fieldnames == ["", "id", "language", "text", "Brand", "Commodity", "Commodity Code", "Jaccard", "Commodity 2", "Commodity Code 2", "Jaccard 2"]
 
     def test_fieldnames_equal_output_keys(self):
         """Output fieldnames should all be contained in output keys and vice versa."""
@@ -76,7 +80,8 @@ class MapPreprocessedToOriginalTestCase(unittest.TestCase):
         #print(sorted(output[1]))
         # Note: there's an extra '' in fieldnames
         # There's also a "language" field for some reason
-        assert ['']+sorted(output[0][0].keys()) == sorted(output[1])
+        fieldnames = order_fieldnames(output)
+        assert ['']+sorted(output[0].keys()) == sorted(fieldnames)
 
 if __name__ == "__main__":
     unittest.main()
