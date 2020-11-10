@@ -2,7 +2,7 @@
 
 import unittest
 import copy
-from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original, order_fieldnames
+from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original, order_fieldnames, unpivot_stocks
 
 class AddCommoditiesToStocksTestCase(unittest.TestCase):
     """Test cases for add_commodities_to_stocks."""
@@ -82,6 +82,16 @@ class OrderFieldnamesTestCase(unittest.TestCase):
         # There's also a "language" field for some reason
         fieldnames = order_fieldnames(output)
         assert ['']+sorted(output[0].keys()) == sorted(fieldnames)
+
+class UnpivotStocksTestCase(unittest.TestCase):
+    """Test cases for unpivot_stocks."""
+
+    def test_output_contains_match_number(self):
+        """If the rows in the input stocks do not contain mulltiple commodities, return input unchanged except for an additional Match Number column."""
+        stocks = [{"text": "circuit", "Commodity": "Electric circuit", "Commodity Code": "200", "Jaccard": "0.99"}]
+        # The expression **stocks[0] includes all keys and values from dict stocks[0]
+        stocks_with_match_num = [{**stocks[0], "Match Number": "1"}]
+        assert unpivot_stocks(stocks) == stocks_with_match_num
 
 if __name__ == "__main__":
     unittest.main()
