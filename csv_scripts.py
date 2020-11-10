@@ -252,16 +252,28 @@ def generate_preprocessed_stocks(stock_master):
     return rows
 
 def count_field(stock_master, field):
-    brands = {}
+    """Given a list of dictionaries representing rows in a csv, create a list of dictionaries representing counts of each value in column 'field'.
+
+    Arguments:
+    stock_master -- list of dictionaries representing rows
+    field -- name of column or field to count values of
+
+    Returns:
+    A list of dictionaries, each with keys field and "Count" representing a count of the values
+    """
+    counts = {}
     for row in stock_master:
-        b = row[field]
-        if not b in brands:
-            brands[b] = 1
-        else:
-            brands[b] += 1
+        try:
+            f = row[field]
+            if not f in counts:
+                counts[f] = 1
+            else:
+                counts[f] += 1
+        except:
+            continue
     rows = []
-    for b in brands:
-        row = {"Brand": b, "Count": brands[b]}
+    for f in counts:
+        row = {field: f, "Count": counts[f]}
         rows.append(row)
     return rows
 
