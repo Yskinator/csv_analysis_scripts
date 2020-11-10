@@ -233,20 +233,20 @@ def generate_preprocessed_stocks(stock_master):
                 d += s + " "
         if d == "":
             d = d_orig
-        if not d in ids:
-            ids[d] = [row["id"]]
-            brands[d] = [row["Brand"]]
-        else:
-            ids[d] = ids[d] + [row["id"]]
-            brands[d] = brands[d] + [row["Brand"]]
+        ids[d] =  [row["id"]] if not d in ids else ids[d] + [row["id"]]
+        try:
+            brands[d] = [row["Brand"]] if not d in brands else brands[d] + [row["Brand"]]
+        except:
+            pass
     rows = []
     for d in ids:
         row_numbers = ""
         bs = ""
         for rn in ids[d]:
             row_numbers += str(rn) + ";"
-        for b in brands[d]:
-            bs += str(b) + ";"
+        if d in brands:
+            for b in brands[d]:
+                bs += str(b) + ";"
         row = {"Description": d, "id": row_numbers, "Brands": bs}
         rows.append(row)
     return rows
