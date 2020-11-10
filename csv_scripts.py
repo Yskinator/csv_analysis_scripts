@@ -329,6 +329,20 @@ def order_fieldnames(rows):
     fieldnames = ["", "id", "language", "text", "Brand"]+extra_keys
     return fieldnames
 
+def unpivot_stocks(stocks):
+    """Perform an unpivot operation on list of dictionaries representing rows.
+    Ex. a row {... "Commodity": "something" ... "Commodity 2": "other"} is converted to two rows:
+    [{... "Commodity": "something", "Match Number": 1 ...}, {... "Commodity": "other", "Match Number": 2 ... }]
+
+    Arguments:
+    stocks - A list of dictionaries representing rows with keys like "Commodity", "Commodity Code" and "Jaccard"
+
+    Returns:
+    A list of dictionaries representing rows with each commodity on its own row
+    """
+    new_stocks = [{**stock, "Match Number": "1"} for stock in stocks]
+    return new_stocks
+
 def remove_temp_files():
     tmp_files = ["brand_counts.csv", "brands_to_top_categories.csv", "preprocessed_stocks_with_brands.csv", "top_category_strings.csv", "stock_with_commodities.csv", "stock_with_top_categories.csv"]
     for f in tmp_files:
