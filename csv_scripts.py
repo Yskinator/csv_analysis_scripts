@@ -159,7 +159,6 @@ def best_n_results(jaccard_index, n):
     scores_sorted = sorted(list(jaccard_index.values()), reverse=True)
     return commodities_sorted[:n], scores_sorted[:n]
 
-
 def generate_top_category_files(column_name):
     if file_utils.folder_exists("top_category_files/"):
         print("top_category_files/ directory already exists")
@@ -295,7 +294,6 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         print("Row id: " + row["id"])
         # Use copy here to avoid modifying the input
         stocks[int(row["id"])] = row.copy()
-    extra_keys = [key for key in stocks_with_commodities[0].keys() if "Commodity" in key or "Jaccard" in key]
     for row in stocks_with_commodities:
         ids = filter(None, row["id"].split(";"))
         for i in ids:
@@ -303,19 +301,33 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
             for key in row.keys():
                 if "Commodity" in key or "Jaccard" in key:
                     stocks[int(i)].update({key: row[key]})
+    rows = []
+    ids = list(stocks.keys())
+    ids.sort()
+    for i in ids:
+        rows.append(stocks[i])
+    return rows
+
+def order_fieldnames(rows):
+    """Given a list of dictionaries rows, determine field names from the keys of the first element, and return them as a list sorted in a logical order.
+
+    Arguments:
+    rows -- a list of dictionaries representing rows
+
+    Returns:
+    A list of field names sorted logically.
+    """
+    extra_keys = [key for key in rows[0].keys() if "Commodity" in key or "Jaccard" in key]
+
     def digits(text):
         num = ''.join(c for c in text if c.isdigit())
         return int(num) if num else 1
     extra_keys.sort(key=(lambda text: text.rstrip("0123456789 "))) # Sort alphabetically
     extra_keys.sort(key=digits) # Sort by number
     # After sorting, should look like [Commodity, Commodity Code, Jaccard, Commodity 2 ...]
-    rows = []
-    ids = list(stocks.keys())
-    ids.sort()
-    for i in ids:
-        rows.append(stocks[i])
+
     fieldnames = ["", "id", "language", "text", "Brand"]+extra_keys
-    return (rows, fieldnames)
+    return fieldnames
 
 def remove_temp_files():
     tmp_files = ["brand_counts.csv", "brands_to_top_categories.csv", "preprocessed_stocks_with_brands.csv", "top_category_strings.csv", "stock_with_commodities.csv", "stock_with_top_categories.csv"]
@@ -333,10 +345,10 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     stock_with_top_categories = top_category_matcher.match_preprocessed_to_top_categories(preprocessed, top_category_strings, brand_counts, tc_to_check_count = tc_to_check_count)
     print("Matching commodities")
     stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold=jaccard_threshold, topn=topn, parallel=parallel)
-    rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
+    rows = map_preprocessed_to_original(stock_master, stock_with_commodities)
     if skip_preprocessing:
         rows = stock_with_commodities
-        fieldnames = list(stock_with_commodities[0].keys())
+    fieldnames = order_fieldnames(rows)
     return (rows, fieldnames)
 
 def add_commodities_to_dataframe(df):
@@ -345,7 +357,6 @@ def add_commodities_to_dataframe(df):
     output_rows, fieldnames = add_commodities_to_stocks(input_rows)
     df_out = pandas.DataFrame(output_rows)
     return df_out
-
 
 def generate_brand_counts_csv():
     if not file_utils.file_exists("brand_counts.csv"):
