@@ -114,10 +114,13 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
 
 def get_brands():
     brands = []
-    rows = file_utils.read_csv('brand_counts.csv')
-    for row in rows:
-        if row["Brand"] != "":
-            brands.append(row["Brand"].lower())
+    try:
+        rows = file_utils.read_csv('brand_counts.csv')
+        for row in rows:
+            if row["Brand"] != "":
+                brands.append(row["Brand"].lower())
+    except FileNotFoundError:
+        pass
     return brands
 
 def to_base_word_set(string):
@@ -160,9 +163,6 @@ def best_n_results(jaccard_index, n):
     return commodities_sorted[:n], scores_sorted[:n]
 
 def generate_top_category_files(column_name):
-    if file_utils.folder_exists("top_category_files/"):
-        print("top_category_files/ directory already exists")
-        return
     file_utils.mkdir("top_category_files")
     rows = file_utils.read_csv('unspsc_codes_v3.csv')
     tcs = {}
@@ -199,9 +199,6 @@ def top_category_to_string(top_category_name):
     return tc_str
 
 def generate_top_category_string_csv():
-    if file_utils.file_exists("top_category_strings.csv"):
-        print("top_category_strings.csv file already exists")
-        return
     tcs = file_utils.top_category_names()
     rows = []
     for s in tcs:
@@ -387,15 +384,26 @@ def add_commodities_to_dataframe(df):
     return df_out
 
 def generate_brand_counts_csv():
-    if not file_utils.file_exists("brand_counts.csv"):
+    try:
         stock_master = file_utils.read_csv("combined_stock_master_withbrands.csv")
         brands = count_field(stock_master, "Brand")
         file_utils.save_csv("brand_counts.csv", brands, fieldnames=["Brand", "Count"])
+    except FileNotFoundError:
+        print("Warning: files brand_counts.csv and/or combined_stock_master_withbrands.csv were not found. Brand data will not be used.")
 
 def generate_constant_csvs(level="Family Name"):
-    generate_top_category_files(level)
-    generate_top_category_string_csv()
-    generate_brand_counts_csv()
+    if not file_utils.folder_exists("top_category_files/"):
+        generate_top_category_files(level)
+    else:
+        print("top_category_files/ directory already exists")
+    if not file_utils.file_exists("top_category_strings.csv"):
+        generate_top_category_string_csv()
+    else:
+        print("top_category_strings.csv file already exists")
+    if not file_utils.file_exists("brand_counts.csv"):
+        generate_brand_counts_csv()
+    else:
+        print("brand_counts.csv file already exists")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script to allocate items to a UNSPSC product")
