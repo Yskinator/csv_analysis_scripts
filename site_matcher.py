@@ -8,7 +8,7 @@ import copy
 from collections import defaultdict, OrderedDict
 
 import file_utils
-import csv_scripts
+from matcher import preprocess, most_matching_words
 
 OUTPUT_FIELDNAMES = ["Site", "Match Site", "Stock & Site", "Description", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
 
@@ -56,31 +56,11 @@ def get_abbrevs():
     abbrevs = file_utils.read_csv("desc_abbrevs.csv")
     for abbrev in abbrevs:
         abbrev["Abbreviation"] = abbrev["Abbreviation"].lower()
-        abbrev["Exapanded"] = abbrev["Expanded"].lower()
+        abbrev["Expanded"] = abbrev["Expanded"].lower()
     return abbrevs
-
-def preprocess(string, abbrevs = []):
-    '''
-    Preprocess a string. Removes commas and semicolons, removes extra spaces,
-    and expands abbreviations.
-    INPUTS:
-    - string to preprocess
-    - abbreviations to replace. List of dicts with Abbreviation and Expanded keys.
-    OUTPUTS:
-    - set of preprocessed words
-    '''
-    #Lowercase, replace , and ; with spaces to prevent merging words
-    string = string.lower().replace(",", " ").replace(";", " ")
-    #Remove extra spaces we may have added
-    string = " ".join(string.split())
-    #Expand any abbreviations we may have
-    for abbrev in abbrevs:
-        string = string.replace(abbrev["Abbreviation"], abbrev["Expanded"])
-    return set(string.split(" "))
 
 def generate_jobs(site_rows, site_to_descs_preprocessed):
     jobs = {}
-    a_set = set()
     abbrevs = get_abbrevs()
     for home, rows in site_rows.items():
         for row in rows:
@@ -89,7 +69,7 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
             desc = desc.strip()
             preprocessed = preprocess(desc, abbrevs)
             for site in site_to_descs_preprocessed:
-                row_jobs[site] = csv_scripts.most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, a_set)
+                row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
             jobs[row["Stock & Site"]] = row_jobs
     return jobs
 

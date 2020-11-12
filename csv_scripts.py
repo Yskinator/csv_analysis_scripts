@@ -15,6 +15,8 @@ import brand_extract_parallel
 #     from . import file_utils
 #     from . import top_category_matcher
 
+from matcher import most_matching_words, best_n_results, to_base_word_set
+
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
 def match_commodities(stock_with_top_categories, jaccard_threshold, topn, parallel=True):
@@ -122,45 +124,6 @@ def get_brands():
     except FileNotFoundError:
         pass
     return brands
-
-def to_base_word_set(string):
-    words = re.findall(r"[\w]+", string)
-    base_words = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in words]
-    return set(base_words)
-
-def most_matching_words(words_to_match, sentences_preprocessed, number_of_results, words_to_exclude):
-    '''
-    Function to calculate Jaccard distance between individual words.
-    Preprocess words_to_match and sentences_preprocessed with to_base_word_set().
-    sentences_preprocessed should be a {string: {"Preprocessed": to_base_word_set(string)}} dictionary.
-    INPUTS:
-     - words_to_match
-     - sentences_preprocessed
-     - number_of_results
-     - words_to_exclude
-    OUTPUTS:
-     - matches_sorted[:limit]
-     - scores_sorted[:limit]
-    '''
-    #print("Matching " + str(words_to_match))
-    jaccard_index = {}
-    try:
-        for match_candidate in sentences_preprocessed:
-            preprocessed_candidate = sentences_preprocessed[match_candidate]["Preprocessed"]
-            words_to_match -= words_to_exclude
-            intersection = len(preprocessed_candidate.intersection(words_to_match))
-            jaccard_index[match_candidate] = intersection / (len(preprocessed_candidate) + len(words_to_match) - intersection)
-        matches_sorted, scores_sorted = best_n_results(jaccard_index, number_of_results)
-    except:
-        matches_sorted = ["NOT FOUND" for i in range(number_of_results)]
-        scores_sorted = [0 for i in range(number_of_results)]
-    #print("Finished " + str(words_to_match))
-    return matches_sorted[:number_of_results], scores_sorted[:number_of_results]
-
-def best_n_results(jaccard_index, n):
-    commodities_sorted = sorted(list(jaccard_index.keys()), key=lambda commodity: -jaccard_index[commodity])
-    scores_sorted = sorted(list(jaccard_index.values()), reverse=True)
-    return commodities_sorted[:n], scores_sorted[:n]
 
 def generate_top_category_files(column_name):
     file_utils.mkdir("top_category_files")
