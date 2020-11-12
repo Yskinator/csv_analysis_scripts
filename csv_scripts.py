@@ -32,23 +32,24 @@ def match_commodities(stock_with_top_categories, jaccard_threshold, topn, parall
     List of dictionaries with the same keys as stock_with_top_categories, and the keys "Commodity", "Commodity Code", and "Jaccard".
     """
     brands = get_brands()
+    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
     #Fetches all the allowed top categories.
     tcs = top_category_matcher.non_excluded_top_categories()
-    commodities = {tc: get_commodities_for_top_category(tc) for tc in tcs}
+    commodities = {tc: get_commodities_for_top_category(tc, abbrevs) for tc in tcs}
     if parallel:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for row in stock_with_top_categories:
-                futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, commodities, brands, topn))
+                futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, commodities, brands, topn, abbrevs))
             updated_rows = [future.result() for future in futures]
     else:
-        updated_rows = [match_commodities_for_row(row, jaccard_threshold, commodities, brands, topn) for row in stock_with_top_categories]
+        updated_rows = [match_commodities_for_row(row, jaccard_threshold, commodities, brands, topn, abbrevs) for row in stock_with_top_categories]
     return updated_rows
 
-def get_commodities_for_top_category(top_category):
-    return get_commodities_for_top_categories([top_category])
+def get_commodities_for_top_category(top_category, abbrevs=[]):
+    return get_commodities_for_top_categories([top_category], abbrevs)
 
-def get_commodities_for_top_categories(top_categories):
+def get_commodities_for_top_categories(top_categories, abbrevs=[]):
     """Given a list of top categories:
         (1) go through the matching files and
         (2) compose a list of all commodities contained in those files.
@@ -64,10 +65,10 @@ def get_commodities_for_top_categories(top_categories):
         for row in rows:
             if row["Commodity Name"] in commodities:
                 print("Duplicate commodity: " + row["Commodity Name"])
-            commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"])}
+            commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"], abbrevs)}
     return commodities
 
-def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[], topn=1):
+def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[], topn=1, abbrevs=[]):
     """Take a row dictionary and return best-matching commodities.
 
     Arguments:
@@ -80,7 +81,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     Output:
     The input row with additional fields 'Commodity' 'Commodity_Code' and 'Jaccard' for each match.
     """
-    desc = to_base_word_set(row["Description"])
+    desc = to_base_word_set(row["Description"], abbrevs)
     brands = set(brands)
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
