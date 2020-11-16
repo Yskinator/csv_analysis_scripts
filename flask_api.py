@@ -1,5 +1,5 @@
 import os
-import csv_scripts
+import commodity_matcher
 from flask import Flask, jsonify, request
 from rq import Queue
 from rq.exceptions import NoSuchJobError
@@ -21,7 +21,7 @@ def api():
         brand = request.args.get("brand", default="")
         text = request.args.get("description")
         rows = [{"Brand": brand, "id": "1", "text": text}]
-        results = csv_scripts.add_commodities_to_stocks(rows)
+        results = commodity_matcher.add_commodities_to_stocks(rows)
         msg = "Success!"
         return {"Results": results[0], "Errors": [], "Status": "finished", "Message": msg}
     else:
@@ -52,7 +52,7 @@ def api():
                 return {"Results": [], "Errors": [], "Status": status, "Message": msg}
 
         except NoSuchJobError:
-            j = q.enqueue(csv_scripts.add_commodities_to_stocks, rows, job_id=row_hash)
+            j = q.enqueue(commodity_matcher.add_commodities_to_stocks, rows, job_id=row_hash)
             msg = "Processing. Ask again in a few minutes to see your results."
             return {"Results": [], "Errors": [], "Status": j.get_status(), "Message": msg}
 
