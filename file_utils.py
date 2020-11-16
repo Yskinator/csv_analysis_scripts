@@ -46,12 +46,23 @@ def save_csv(filename, rows, mode = "w", fieldnames = []):
             w.writerow(r)
 
 
-def read_csv(filename):
+def read_csv(filename, add_ids=False):
+    """Read a csv file into a list of row dictionaries.
+
+    Arguments:
+    filename (string) -- Filename of the csv file to read
+    add_ids (bool) -- If true, add a key called "id" with a running row count to each row dictionary
+
+    Returns:
+    A list of dictionaries representing rows in the csv.
+    """
     filename = add_path(filename)
     rows = []
     with open(filename, encoding='utf-8-sig') as f:
         r = csv.DictReader(f)
-        for row in r:
+        for i, row in enumerate(r):
+            if add_ids:
+                row["id"] = str(i)
             rows.append(row)
     return rows
 

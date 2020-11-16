@@ -15,6 +15,8 @@ import brand_extract_parallel
 #     from . import file_utils
 #     from . import top_category_matcher
 
+from matcher import most_matching_words, best_n_results, to_base_word_set
+
 csv.field_size_limit(int(sys.maxsize/100000000000))
 
 def match_commodities(stock_with_top_categories, jaccard_threshold, topn, parallel=True):
@@ -30,23 +32,24 @@ def match_commodities(stock_with_top_categories, jaccard_threshold, topn, parall
     List of dictionaries with the same keys as stock_with_top_categories, and the keys "Commodity", "Commodity Code", and "Jaccard".
     """
     brands = get_brands()
+    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
     #Fetches all the allowed top categories.
     tcs = top_category_matcher.non_excluded_top_categories()
-    commodities = {tc: get_commodities_for_top_category(tc) for tc in tcs}
+    commodities = {tc: get_commodities_for_top_category(tc, abbrevs) for tc in tcs}
     if parallel:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = []
             for row in stock_with_top_categories:
-                futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, commodities, brands, topn))
+                futures.append(executor.submit(match_commodities_for_row, row, jaccard_threshold, commodities, brands, topn, abbrevs))
             updated_rows = [future.result() for future in futures]
     else:
-        updated_rows = [match_commodities_for_row(row, jaccard_threshold, commodities, brands, topn) for row in stock_with_top_categories]
+        updated_rows = [match_commodities_for_row(row, jaccard_threshold, commodities, brands, topn, abbrevs) for row in stock_with_top_categories]
     return updated_rows
 
-def get_commodities_for_top_category(top_category):
-    return get_commodities_for_top_categories([top_category])
+def get_commodities_for_top_category(top_category, abbrevs=[]):
+    return get_commodities_for_top_categories([top_category], abbrevs)
 
-def get_commodities_for_top_categories(top_categories):
+def get_commodities_for_top_categories(top_categories, abbrevs=[]):
     """Given a list of top categories:
         (1) go through the matching files and
         (2) compose a list of all commodities contained in those files.
@@ -62,10 +65,10 @@ def get_commodities_for_top_categories(top_categories):
         for row in rows:
             if row["Commodity Name"] in commodities:
                 print("Duplicate commodity: " + row["Commodity Name"])
-            commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"])}
+            commodities[row["Commodity Name"]] = {"Commodity Code": row["Commodity"], "Preprocessed": to_base_word_set(row["Commodity Name"], abbrevs)}
     return commodities
 
-def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[], topn=1):
+def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=[], topn=1, abbrevs=[]):
     """Take a row dictionary and return best-matching commodities.
 
     Arguments:
@@ -78,7 +81,7 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
     Output:
     The input row with additional fields 'Commodity' 'Commodity_Code' and 'Jaccard' for each match.
     """
-    desc = to_base_word_set(row["Description"])
+    desc = to_base_word_set(row["Description"], abbrevs)
     brands = set(brands)
     print("Row " + row["id"] + ", matching commodities.")
     tc_string = row["Top Categories"].replace('"', "")
@@ -114,56 +117,16 @@ def match_commodities_for_row(row, jaccard_threshold, commodities_by_tc, brands=
 
 def get_brands():
     brands = []
-    rows = file_utils.read_csv('brand_counts.csv')
-    for row in rows:
-        if row["Brand"] != "":
-            brands.append(row["Brand"].lower())
+    try:
+        rows = file_utils.read_csv('brand_counts.csv')
+        for row in rows:
+            if row["Brand"] != "":
+                brands.append(row["Brand"].lower())
+    except FileNotFoundError:
+        pass
     return brands
 
-def to_base_word_set(string):
-    words = re.findall(r"[\w]+", string)
-    base_words = [re.sub('\er$', '', re.sub('\ing$', '', w.lower().rstrip("s"))) for w in words]
-    return set(base_words)
-
-def most_matching_words(words_to_match, sentences_preprocessed, number_of_results, words_to_exclude):
-    '''
-    Function to calculate Jaccard distance between individual words.
-    Preprocess words_to_match and sentences_preprocessed with to_base_word_set().
-    sentences_preprocessed should be a {string: {"Preprocessed": to_base_word_set(string)}} dictionary.
-    INPUTS:
-     - words_to_match
-     - sentences_preprocessed
-     - number_of_results
-     - words_to_exclude
-    OUTPUTS:
-     - matches_sorted[:limit]
-     - scores_sorted[:limit]
-    '''
-    #print("Matching " + str(words_to_match))
-    jaccard_index = {}
-    try:
-        for match_candidate in sentences_preprocessed:
-            preprocessed_candidate = sentences_preprocessed[match_candidate]["Preprocessed"]
-            words_to_match -= words_to_exclude
-            intersection = len(preprocessed_candidate.intersection(words_to_match))
-            jaccard_index[match_candidate] = intersection / (len(preprocessed_candidate) + len(words_to_match) - intersection)
-        matches_sorted, scores_sorted = best_n_results(jaccard_index, number_of_results)
-    except:
-        matches_sorted = ["NOT FOUND" for i in range(number_of_results)]
-        scores_sorted = [0 for i in range(number_of_results)]
-    #print("Finished " + str(words_to_match))
-    return matches_sorted[:number_of_results], scores_sorted[:number_of_results]
-
-def best_n_results(jaccard_index, n):
-    commodities_sorted = sorted(list(jaccard_index.keys()), key=lambda commodity: -jaccard_index[commodity])
-    scores_sorted = sorted(list(jaccard_index.values()), reverse=True)
-    return commodities_sorted[:n], scores_sorted[:n]
-
-
 def generate_top_category_files(column_name):
-    if file_utils.folder_exists("top_category_files/"):
-        print("top_category_files/ directory already exists")
-        return
     file_utils.mkdir("top_category_files")
     rows = file_utils.read_csv('unspsc_codes_v3.csv')
     tcs = {}
@@ -200,9 +163,6 @@ def top_category_to_string(top_category_name):
     return tc_str
 
 def generate_top_category_string_csv():
-    if file_utils.file_exists("top_category_strings.csv"):
-        print("top_category_strings.csv file already exists")
-        return
     tcs = file_utils.top_category_names()
     rows = []
     for s in tcs:
@@ -233,35 +193,47 @@ def generate_preprocessed_stocks(stock_master):
                 d += s + " "
         if d == "":
             d = d_orig
-        if not d in ids:
-            ids[d] = [row["id"]]
-            brands[d] = [row["Brand"]]
-        else:
-            ids[d] = ids[d] + [row["id"]]
-            brands[d] = brands[d] + [row["Brand"]]
+        ids[d] =  [row["id"]] if not d in ids else ids[d] + [row["id"]]
+        try:
+            brands[d] = [row["Brand"]] if not d in brands else brands[d] + [row["Brand"]]
+        except:
+            pass
     rows = []
     for d in ids:
         row_numbers = ""
         bs = ""
         for rn in ids[d]:
             row_numbers += str(rn) + ";"
-        for b in brands[d]:
-            bs += str(b) + ";"
+        if d in brands:
+            for b in brands[d]:
+                bs += str(b) + ";"
         row = {"Description": d, "id": row_numbers, "Brands": bs}
         rows.append(row)
     return rows
 
 def count_field(stock_master, field):
-    brands = {}
+    """Given a list of dictionaries representing rows in a csv, create a list of dictionaries representing counts of each value in column 'field'.
+
+    Arguments:
+    stock_master -- list of dictionaries representing rows
+    field -- name of column or field to count values of
+
+    Returns:
+    A list of dictionaries, each with keys field and "Count" representing a count of the values
+    """
+    counts = {}
     for row in stock_master:
-        b = row[field]
-        if not b in brands:
-            brands[b] = 1
-        else:
-            brands[b] += 1
+        try:
+            f = row[field]
+            if not f in counts:
+                counts[f] = 1
+            else:
+                counts[f] += 1
+        except:
+            continue
     rows = []
-    for b in brands:
-        row = {"Brand": b, "Count": brands[b]}
+    for f in counts:
+        row = {field: f, "Count": counts[f]}
         rows.append(row)
     return rows
 
@@ -283,7 +255,6 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         print("Row id: " + row["id"])
         # Use copy here to avoid modifying the input
         stocks[int(row["id"])] = row.copy()
-    extra_keys = [key for key in stocks_with_commodities[0].keys() if "Commodity" in key or "Jaccard" in key]
     for row in stocks_with_commodities:
         ids = filter(None, row["id"].split(";"))
         for i in ids:
@@ -291,35 +262,82 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
             for key in row.keys():
                 if "Commodity" in key or "Jaccard" in key:
                     stocks[int(i)].update({key: row[key]})
+    rows = []
+    ids = list(stocks.keys())
+    ids.sort()
+    for i in ids:
+        rows.append(stocks[i])
+    return rows
+
+def order_fieldnames(rows):
+    """Given a list of dictionaries rows, determine field names from the keys of the first element, and return them as a list sorted in a logical order.
+
+    Arguments:
+    rows -- a list of dictionaries representing rows
+
+    Returns:
+    A list of field names sorted logically.
+    """
+    extra_keys = [key for key in rows[0].keys() if "Commodity" in key or "Jaccard" in key]
+
     def digits(text):
         num = ''.join(c for c in text if c.isdigit())
         return int(num) if num else 1
     extra_keys.sort(key=(lambda text: text.rstrip("0123456789 "))) # Sort alphabetically
     extra_keys.sort(key=digits) # Sort by number
     # After sorting, should look like [Commodity, Commodity Code, Jaccard, Commodity 2 ...]
-    rows = []
-    ids = list(stocks.keys())
-    ids.sort()
-    for i in ids:
-        rows.append(stocks[i])
+
     fieldnames = ["", "id", "language", "text", "Brand"]+extra_keys
-    return (rows, fieldnames)
+    return fieldnames
+
+def unpivot_stocks(stocks):
+    """Perform an unpivot operation on list of dictionaries representing rows.
+    Ex. a row {... "Commodity": "something" ... "Commodity 2": "other"} is converted to two rows:
+    [{... "Commodity": "something", "Match Number": 1 ...}, {... "Commodity": "other", "Match Number": 2 ... }]
+
+    Arguments:
+    stocks - A list of dictionaries representing rows with keys like "Commodity", "Commodity Code" and "Jaccard"
+
+    Returns:
+    A list of dictionaries representing rows with each commodity on its own row
+    """
+    new_stocks = []
+    for stock in stocks:
+        base_items = {key: val for (key, val) in stock.items() if "Commodity" not in key and "Jaccard" not in key}
+        new_stock = {**base_items, "Commodity": stock["Commodity"], "Commodity Code": stock["Commodity Code"], "Jaccard": stock["Jaccard"], "Match Number": "1"}
+        new_stocks.append(new_stock)
+
+        i = 2
+        while True:
+            if "Commodity "+str(i) in stock:
+                new_stock = {**base_items, "Commodity": stock["Commodity "+str(i)], "Commodity Code": stock["Commodity Code "+str(i)], "Jaccard": stock["Jaccard "+str(i)], "Match Number": str(i)}
+                new_stocks.append(new_stock)
+            else:
+                break
+            i = i+1
+    return new_stocks
 
 def remove_temp_files():
     tmp_files = ["brand_counts.csv", "brands_to_top_categories.csv", "preprocessed_stocks_with_brands.csv", "top_category_strings.csv", "stock_with_commodities.csv", "stock_with_top_categories.csv"]
     for f in tmp_files:
         os.remove(f)
 
-def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold=0.3, topn=1, parallel=True):
+def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_count=25, jaccard_threshold=0.3, topn=1, parallel=True, skip_preprocessing=False):
     """stock_master is a list of dicts that must contain keys id, text and Brand. Brand may be an empty string."""
     generate_constant_csvs(level)
     preprocessed = generate_preprocessed_stocks(stock_master)
+    if skip_preprocessing:
+        preprocessed = stock_master
     brand_counts = count_field(stock_master, "Brand")
     top_category_strings = file_utils.read_csv("top_category_strings.csv")
     stock_with_top_categories = top_category_matcher.match_preprocessed_to_top_categories(preprocessed, top_category_strings, brand_counts, tc_to_check_count = tc_to_check_count)
     print("Matching commodities")
     stock_with_commodities = match_commodities(stock_with_top_categories, jaccard_threshold=jaccard_threshold, topn=topn, parallel=parallel)
-    rows, fieldnames = map_preprocessed_to_original(stock_master, stock_with_commodities)
+    rows = map_preprocessed_to_original(stock_master, stock_with_commodities)
+    if skip_preprocessing:
+        rows = stock_with_commodities
+    rows = unpivot_stocks(rows)
+    fieldnames = order_fieldnames(rows)
     return (rows, fieldnames)
 
 def add_commodities_to_dataframe(df):
@@ -329,17 +347,27 @@ def add_commodities_to_dataframe(df):
     df_out = pandas.DataFrame(output_rows)
     return df_out
 
-
 def generate_brand_counts_csv():
-    if not file_utils.file_exists("brand_counts.csv"):
+    try:
         stock_master = file_utils.read_csv("combined_stock_master_withbrands.csv")
         brands = count_field(stock_master, "Brand")
         file_utils.save_csv("brand_counts.csv", brands, fieldnames=["Brand", "Count"])
+    except FileNotFoundError:
+        print("Warning: files brand_counts.csv and/or combined_stock_master_withbrands.csv were not found. Brand data will not be used.")
 
 def generate_constant_csvs(level="Family Name"):
-    generate_top_category_files(level)
-    generate_top_category_string_csv()
-    generate_brand_counts_csv()
+    if not file_utils.folder_exists("top_category_files/"):
+        generate_top_category_files(level)
+    else:
+        print("top_category_files/ directory already exists")
+    if not file_utils.file_exists("top_category_strings.csv"):
+        generate_top_category_string_csv()
+    else:
+        print("top_category_strings.csv file already exists")
+    if not file_utils.file_exists("brand_counts.csv"):
+        generate_brand_counts_csv()
+    else:
+        print("brand_counts.csv file already exists")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script to allocate items to a UNSPSC product")
@@ -350,16 +378,19 @@ if __name__ == "__main__":
     parser.add_argument("-j", "--jaccard", help="Sets the Jaccard threshold. If the Jaccard score of the best match is below the threshold, reruns the search for all top categories to find the best possible match. Default value is 0.3.", type=float, default=0.3)
     parser.add_argument("-m", "--matches", help="How many matches to return for each row. Default is 1.", type=int, default=1)
     parser.add_argument("-np", "--no_parallel", help="Flag that determines whether to use parallel processing to speed up search.", action="store_true")
+    parser.add_argument("-a", "--add_ids", help="Flag that determines whether to add an id column to the data read from the input csv.", action="store_true")
+    parser.add_argument("-s", "--skip_preprocessing", help="If set, skip preprocessing steps. This will slow down the processing.", action="store_true")
 
     args = parser.parse_args()
 
-    stock_master = file_utils.read_csv(args.filename)
+    stock_master = file_utils.read_csv(args.filename, add_ids=args.add_ids)
     level = args.level
     top_categories_to_check_count = args.num_to_check
     output = args.output
     jac = args.jaccard
     topn = args.matches
     parallel = not args.no_parallel
+    skip_preprocessing = args.skip_preprocessing
 
     stime = time.time()
 
@@ -368,8 +399,12 @@ if __name__ == "__main__":
         df = add_commodities_to_dataframe(stock_master)
         print(df)
     else:
-        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count, jac, topn, parallel)
-        file_utils.save_csv(output, rows, fieldnames=fieldnames)
+        rows, fieldnames = add_commodities_to_stocks(stock_master, level+" Name", top_categories_to_check_count, jac, topn, parallel, skip_preprocessing)
+        try:
+            file_utils.save_csv(output, rows, fieldnames=fieldnames)
+        except ValueError:
+            print("Warning: row dictionaries contain keys not in fieldnames. Ignoring fieldnames...")
+            file_utils.save_csv(output, rows)
 
     etime = time.time()
     ttime = etime-stime
