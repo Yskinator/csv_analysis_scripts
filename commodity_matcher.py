@@ -271,27 +271,6 @@ def map_preprocessed_to_original(combined_stocks, stocks_with_commodities):
         rows.append(stocks[i])
     return rows
 
-def order_fieldnames(rows):
-    """Given a list of dictionaries rows, determine field names from the keys of the first element, and return them as a list sorted in a logical order.
-
-    Arguments:
-    rows -- a list of dictionaries representing rows
-
-    Returns:
-    A list of field names sorted logically.
-    """
-    extra_keys = [key for key in rows[0].keys() if "Commodity" in key or "Jaccard" in key]
-
-    def digits(text):
-        num = ''.join(c for c in text if c.isdigit())
-        return int(num) if num else 1
-    extra_keys.sort(key=(lambda text: text.rstrip("0123456789 "))) # Sort alphabetically
-    extra_keys.sort(key=digits) # Sort by number
-    # After sorting, should look like [Commodity, Commodity Code, Jaccard, Commodity 2 ...]
-
-    fieldnames = ["", "id", "language", "text", "Brand"]+extra_keys
-    return fieldnames
-
 def unpivot_stocks(stocks):
     """Perform an unpivot operation on list of dictionaries representing rows.
     Ex. a row {... "Commodity": "something" ... "Commodity 2": "other"} is converted to two rows:
@@ -339,7 +318,6 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
     if skip_preprocessing:
         rows = stock_with_commodities
     rows = unpivot_stocks(rows)
-    #fieldnames = order_fieldnames(rows)
     return rows
 
 def add_commodities_to_dataframe(df):
