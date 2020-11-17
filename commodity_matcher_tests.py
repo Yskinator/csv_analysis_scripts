@@ -2,7 +2,7 @@
 
 import unittest
 import copy
-from csv_scripts import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original, order_fieldnames, unpivot_stocks
+from commodity_matcher import match_commodities, add_commodities_to_stocks, map_preprocessed_to_original, order_fieldnames, unpivot_stocks
 
 class AddCommoditiesToStocksTestCase(unittest.TestCase):
     """Test cases for add_commodities_to_stocks."""

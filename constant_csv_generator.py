@@ -1,4 +1,4 @@
-import csv_scripts
+import commodity_matcher
 
 if __name__=="__main__":
-    csv_scripts.generate_constant_csvs()
+    commodity_matcher.generate_constant_csvs()

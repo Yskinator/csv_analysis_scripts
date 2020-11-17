@@ -1,5 +1,5 @@
 import unittest
-import site_matcher
+import row_to_row_matcher
 import random
 import string
 import copy
@@ -75,10 +75,10 @@ def correct_input_2_rows_only_1_site():
     rows[1]["Site"] = "Site A"
     return rows
 
-def match(rows, fieldnames = site_matcher.ALL_FIELDNAMES):
+def match(rows, fieldnames = row_to_row_matcher.ALL_FIELDNAMES):
     df = pandas.DataFrame(rows, columns = fieldnames)
     df = df.fillna(value="-1")
-    df_out = site_matcher.match_sites_dataframe(df)
+    df_out = row_to_row_matcher.match_sites_dataframe(df)
     output_rows = df_out.to_dict("records")
     return sorted(output_rows, key = lambda row: row["Site"])
 
@@ -116,15 +116,15 @@ def match_1_empty_description_3_rows():
 
 def match_1_None_Description_3_rows():
     rows = one_None_description_3_rows()
-    fieldnames = site_matcher.INPUT_FIELDNAMES
+    fieldnames = row_to_row_matcher.INPUT_FIELDNAMES
     df = pandas.DataFrame(rows, columns = fieldnames)
-    df_out = site_matcher.match_sites_dataframe(df)
+    df_out = row_to_row_matcher.match_sites_dataframe(df)
     output_rows = df_out.to_dict("records")
     return sorted(output_rows, key = lambda row: row["Site"])
 
 def match_missing_description_2_rows():
     rows = missing_description_2_rows()
-    fieldnames = site_matcher.INPUT_FIELDNAMES.remove("Stock Description")
+    fieldnames = row_to_row_matcher.INPUT_FIELDNAMES.remove("Stock Description")
     return match(rows, fieldnames=fieldnames)
 
 def drop_old_rows(rows):
@@ -194,7 +194,7 @@ class IntegrationTestCase(unittest.TestCase):
             self.assertIn("Matching Row Count", keys)
 
     def assert_output_fieldnames_correct(self, rows):
-        fieldnames = site_matcher.OUTPUT_FIELDNAMES
+        fieldnames = row_to_row_matcher.OUTPUT_FIELDNAMES
         for row in rows:
             for fn in fieldnames:
                 self.assertIn(fn, row)
@@ -486,7 +486,7 @@ class TopNMatchesUnitTest(unittest.TestCase):
         matches = zip(self.n_sets_of_matches(10), self.n_sets_of_matches(10))
         for (m1, m2) in matches:
             n = random.randint(1, 40)
-            matches = site_matcher.top_n_matches(m1, m2, n)
+            matches = row_to_row_matcher.top_n_matches(m1, m2, n)
             if n < len(m1["Matches"]) + len(m2["Matches"]):
                 self.assert_is_n_matches(matches, n)
             else:
@@ -498,7 +498,7 @@ class TopNMatchesUnitTest(unittest.TestCase):
         for (m1, m2) in matches:
             n = random.randint(1, 40)
             m1 = self.duplicate_match(m1)
-            matches = site_matcher.top_n_matches(m1, m2, n)
+            matches = row_to_row_matcher.top_n_matches(m1, m2, n)
             self.assert_has_no_duplicate_matches(matches)
 
         #Duplicates caused by changing the rows that match to a match description
@@ -506,7 +506,7 @@ class TopNMatchesUnitTest(unittest.TestCase):
         for (m1, m2) in matches:
             n = random.randint(1, 40)
             m1 = self.duplicate_match_diff_stock_n_site(m1)
-            matches = site_matcher.top_n_matches(m1, m2, n)
+            matches = row_to_row_matcher.top_n_matches(m1, m2, n)
             self.assert_has_no_duplicate_matches(matches)
 
         #Duplicates caused by same match appearing in both sets of matches
@@ -514,11 +514,11 @@ class TopNMatchesUnitTest(unittest.TestCase):
         for (m1, m2) in matches:
             n = random.randint(1, 40)
             m2 = self.copy_match_m1_to_m2(m1, m2)
-            matches = site_matcher.top_n_matches(m1, m2, n)
+            matches = row_to_row_matcher.top_n_matches(m1, m2, n)
             self.assert_has_no_duplicate_matches(matches)
 
             
 if __name__ == "__main__":
     unittest.main()
     #import file_utils
-    #file_utils.save_csv("test_out.csv", match_1_None_Description_3_rows(), fieldnames=site_matcher.OUTPUT_FIELDNAMES)
+    #file_utils.save_csv("test_out.csv", match_1_None_Description_3_rows(), fieldnames=row_to_row_matcher.OUTPUT_FIELDNAMES)

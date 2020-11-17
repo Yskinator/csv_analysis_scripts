@@ -4,7 +4,7 @@ import azure.functions as func
 
 import json
 
-from __app__.scripts import csv_scripts
+from __app__.scripts import commodity_matcher
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Python HTTP trigger function processed a request.")
@@ -17,7 +17,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         except:
             topn = 1
         rows = [{"Brand": brand, "id": "1", "text": text}]
-        results = csv_scripts.add_commodities_to_stocks(rows, topn=topn, parallel=False)
+        results = commodity_matcher.add_commodities_to_stocks(rows, topn=topn, parallel=False)
     elif req.method == "POST":
         try:
             params = req.get_body().decode("utf-8").split("&")
@@ -33,7 +33,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         for i, row in enumerate(rows):
             inputs.append({"Brand": "", "id": str(i), "text": row})
-        results = csv_scripts.add_commodities_to_stocks(inputs, parallel=False)
+        results = commodity_matcher.add_commodities_to_stocks(inputs, parallel=False)
         #else:
         #    return func.HttpResponse("The POST request did not include a 'rows' data parameter.", status_code=400)
     else:
