@@ -323,9 +323,15 @@ def add_commodities_to_stocks(stock_master, level="Family Name", tc_to_check_cou
 def add_commodities_to_dataframe(df):
     df = brand_extract_parallel.detect_brands(df)
     input_rows = df.to_dict("records")
-    output_rows, fieldnames = add_commodities_to_stocks(input_rows)
+    input_rows = add_ids(input_rows)
+    output_rows = add_commodities_to_stocks(input_rows)
     df_out = pandas.DataFrame(output_rows)
     return df_out
+    
+def add_ids(rows):
+    for i, row in enumerate(rows):
+        row["id"] = str(i)
+    return rows
 
 def generate_brand_counts_csv():
     try:

@@ -53,7 +53,7 @@ def detect_brands(cdf, brandlist=True, output_brandlist=False):
         # brands = list(cdf['Stock Master Combined[Brand v2]'].value_counts().index.values)
         brands = ['LG', 'KOMATSU', 'CAT']
     else:
-        brands = pd.read_csv(brandlist)
+        brands = pd.DataFrame(file_utils.read_csv(brandlist))
         brands = list(brands.Brand.values)
 
     #Remove all single quote marks (apostrophes)
@@ -64,7 +64,7 @@ def detect_brands(cdf, brandlist=True, output_brandlist=False):
     
     #Correct common spelling mistakes/abbreviations etc - need to automate with regexes!
     #Should create a dictionary of abbreviations/common spelling mistakes etc - do this for the top brands.
-    babbrvs = pd.read_csv('./brand_abbrevs.csv', encoding='utf-8')
+    babbrvs = pd.DataFrame(file_utils.read_csv('brand_abbrevs.csv'))
     for num, bi in enumerate(babbrvs.brandname.values):
         regex = re.compile(r"(?<=(?:[A-Za-z0-9]\W|[A-Za-z0-9]\s|\s\s|\W\s|\W\W))\b"+bi.upper()+r"\b")
         cdf['Brand'][cdf["text"]
