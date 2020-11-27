@@ -111,6 +111,15 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
     return desc_matches
 
 def combine_desc_matches(matches1, matches2, n):
+    """Combine description matches. Input and output is like {"item_id1": {"site1": {"Matches": [...], "Scores": [...], "Stock & Site": [...]}, ...}, ...}
+
+    Arguments:
+    matches1, matches2 -- Lists of dictionaries mapping item_ids ("Stock & Site" fields) to sites to matches.
+    n -- The amount of matches to return for each item_id and site
+
+    Returns:
+    A dict of dicts of dicts mapping item_ids to sites to matches.
+    """
     results = {}
     if not matches1:
         return matches2
@@ -139,6 +148,15 @@ def combine_desc_matches(matches1, matches2, n):
     return results
 
 def top_n_matches(m1, m2, n):
+    """Return the best n matches in m1 and m2.
+
+    Arguments:
+    m1, m2 -- Dictionaries with keys "Matches", "Scores" and "Stock & Site" mapped to lists of equal length
+    n (integer) -- The amount of matches to return
+
+    Returns:
+    A dictionary with keys "Matches", "Scores" and "Stock & Site" mapped to lists, combining m1 and m2 while removing duplicates. The lists are sorted and of length n.
+    """
     all_matches = list(zip(m1["Matches"], m1["Scores"], m1["Stock & Site"])) + list(zip(m2["Matches"], m2["Scores"], m2["Stock & Site"]))
     all_matches = sorted(all_matches, key = lambda match: float(match[1]), reverse = True)
     #all_matches = list(OrderedDict.fromkeys(all_matches)) #Remove duplicates
@@ -179,7 +197,23 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
+def match_sites2(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
+    """A reimplementation of match_sites."""
+    return []
+
 def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
+    """Match rows to rows.
+
+    Arguments:
+    site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
+    old_site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
+    old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
+    matches_json (string) -- A string representing the filename of a json file containing old matches to speed up processing
+    exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
+
+    Returns:
+    A list of dictionaries representing rows with matches.
+    """
     #num = 0
     #for site in site_rows:
     #    site_rows[site], num = number(site_rows[site], num)
@@ -306,6 +340,15 @@ def match_sites_dataframe(dataframe, matches_json=""):
     return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
+    """Generates site to rows dictionary.
+
+    Arguments:
+    rows -- A list of dictionaries representing rows
+    old (bool) -- If True, change key "Description" to "Stock Description" and remove rows with duplicate "Stock & Site"
+
+    Returns:
+    A dictionary mapping each site to a list of rows related to that site
+    """
     if old:
         item_ids = []
         new_rows = []
