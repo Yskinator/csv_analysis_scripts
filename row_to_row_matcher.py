@@ -406,6 +406,7 @@ if __name__=="__main__":
 
     if output_file:
         matches_df = match_sites_dataframe(df, matches_json=matches_json)
+        matches_df = matches_df.sort_values(by=["Stock & Site", "Match Stock & Site"])
         result_rows = matches_df.to_dict("records")
         file_utils.save_csv(output_file, result_rows, fieldnames=OUTPUT_FIELDNAMES)
     else:
