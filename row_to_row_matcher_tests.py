@@ -1,9 +1,11 @@
 import unittest
-import row_to_row_matcher
 import random
 import string
 import copy
 import pandas
+
+import row_to_row_matcher
+from row_to_row_matcher import match_sites
 
 def correct_input_2_rows():
     rows = []
@@ -517,6 +519,42 @@ class TopNMatchesUnitTest(unittest.TestCase):
             matches = row_to_row_matcher.top_n_matches(m1, m2, n)
             self.assert_has_no_duplicate_matches(matches)
 
+class MatchSitesTestCase(unittest.TestCase):
+    """Tests for match_sites."""
+
+    def test_returns_empty_list_if_empty(self):
+        """If input dictionary is empty, return an empty list."""
+        assert match_sites({}) == []
+
+    def test_every_input_row_has_at_least_one_match(self):
+        """All input rows should have at least one match in the output."""
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        assert len(match_sites({"1": rows, "2": rows})) >= 2
+        assert len(match_sites({"1": rows, "2": rows, "3": rows})) >= 3
+
+    def test_all_matches_should_contain_keys(self):
+        """All output matches should contain the keys 'Match Site', 'Old Row', 'Match Description', 'Match Stock & Site', 'Match Score', 'Match Number' and 'Matching Row Count'"""
+        required_keys = ["Match Site", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        output = match_sites({"1": rows, "2": rows, "3": rows})
+        for match in output:
+            assert all([key in match for key in required_keys])
+
+    def test_identical_rows_should_match_perfectly(self):
+        """Identical rows should match each other with a match score of 1.0."""
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        output = match_sites({"1": rows, "2": rows})
+        expected_output = [{'Stock & Site': '1', 'Site': '1', 'Description': 'Thing', 'Match Site': '2', 'Old Row': 'No', 'Match Description': 'Thing', 'Match Stock & Site': '1', 'Match Score': '1.0', 'Match Number': '0', 'Matching Row Count': '1'}, {'Stock & Site': '1', 'Site': '2', 'Description': 'Thing', 'Match Site': '1', 'Old Row': 'No', 'Match Description': 'Thing', 'Match Stock & Site': '1', 'Match Score': '1.0', 'Match Number': '0', 'Matching Row Count': '1'}]
+        for row in expected_output:
+            assert row in output
+
+    def test_bad_match_should_score_zero(self):
+        """If row has no valid matches, best match score should be 0.0."""
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
+        output = match_sites({"1": rows, "2": rows2})
+        for row in output:
+            assert row["Match Score"] == "0.0"
             
 if __name__ == "__main__":
     unittest.main()
