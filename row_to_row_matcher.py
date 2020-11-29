@@ -251,6 +251,9 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
 
             matches = desc_matches[item_id][site]
             if matches == old_matches:
+                if exclude_unchanged:
+                    # Results unchanged for this site, skip to next one
+                    continue
                 row_base["Old Row"] = "Unchanged"
             else:
                 matches = top_n_matches(matches, old_matches, 10)
@@ -259,8 +262,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                     final_rows.append(old_row)
                 row_base["Old Row"] = "No"
             for i, (match, score, desc_match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
-                if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
-                    break
                 for match_row in desc_match_rows:
                     new_row = {**row_base, "Match Description": match, "Match Stock & Site": match_row, "Match Score": str(score), "Match Number": str(i), "Matching Row Count": str(len(desc_match_rows))}
                     #Prevent duplicate rows. TODO: Figure out how this happens.
