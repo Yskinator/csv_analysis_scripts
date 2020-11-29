@@ -181,6 +181,26 @@ def top_n_matches(m1, m2, n):
         result_matches["Stock & Site"].append(match[2])
     return result_matches
 
+def rows_to_matches(rows):
+    """Convert rows to matches format required by top_n_matches.
+    
+    Arguments:
+    rows -- list of dictionaries representing rows
+    
+    Returns:
+    Matches as a dictionary of the form {"Matches": [...], "Scores": [...], "Stock & Site": []}
+    """
+    matches = {"Matches": [], "Scores": [], "Stock & Site": []}
+    # Rows need to be sorted correctly for ["Stock & Site"][-1] to target the right match
+    rows = sorted(rows, key = lambda r: r["Match Number"])
+    for row in rows:
+        if not row["Match Description"] in matches["Matches"]:
+            matches["Scores"].append(float(row["Match Score"]))
+            matches["Matches"].append(row["Match Description"])
+            matches["Stock & Site"].append(set())
+        # else it should be the case that matches["Matches"][-1] == row["Match Description"] because of sorting
+        matches["Stock & Site"][-1].add(row["Match Stock & Site"])
+    return matches
 
 def number(rows, start):
     num = start
@@ -238,14 +258,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
             if site == row["Site"]:
                 continue
             old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)
-            old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
-            old_rows = sorted(old_rows, key = lambda r: r["Match Number"])
-            for r in old_rows:
-                if not r["Match Description"] in old_matches["Matches"]:
-                    old_matches["Scores"].append(float(r["Match Score"]))
-                    old_matches["Matches"].append(r["Match Description"])
-                    old_matches["Stock & Site"].append(set())
-                old_matches["Stock & Site"][-1].add(r["Match Stock & Site"])
+            old_matches = rows_to_matches(old_rows)
 
             row_base = {"Stock & Site": item_id, "Site": row["Site"], "Description": row["Description"], "Match Site": site}
 
