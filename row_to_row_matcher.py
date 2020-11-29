@@ -237,11 +237,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
         for site in all_sites:
             if site == row["Site"]:
                 continue
-            row_base = {}
-            row_base["Stock & Site"] = item_id
-            row_base["Site"] = row["Site"]
-            row_base["Description"] = row["Description"]
-            row_base["Match Site"] = site
             old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)
             old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
             old_rows = sorted(old_rows, key = lambda r: r["Match Number"])
@@ -251,6 +246,8 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                     old_matches["Matches"].append(r["Match Description"])
                     old_matches["Stock & Site"].append(set())
                 old_matches["Stock & Site"][-1].add(r["Match Stock & Site"])
+
+            row_base = {"Stock & Site": item_id, "Site": row["Site"], "Description": row["Description"], "Match Site": site}
 
             matches = desc_matches[item_id][site]
             if matches == old_matches:
@@ -265,12 +262,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                 if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
                     break
                 for match_row in desc_match_rows:
-                    new_row = copy.deepcopy(row_base)
-                    new_row["Match Description"] = match
-                    new_row["Match Stock & Site"] = match_row
-                    new_row["Match Score"] = str(score)
-                    new_row["Match Number"] = str(i)
-                    new_row["Matching Row Count"] = str(len(desc_match_rows))
+                    new_row = {**row_base, "Match Description": match, "Match Stock & Site": match_row, "Match Score": str(score), "Match Number": str(i), "Matching Row Count": str(len(desc_match_rows))}
                     #Prevent duplicate rows. TODO: Figure out how this happens.
                     #if not new_row in final_rows:
                     final_rows.append(new_row)
