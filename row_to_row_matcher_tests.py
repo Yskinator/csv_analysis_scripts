@@ -59,10 +59,10 @@ def correct_output_3_rows_1_unchanged():
 
     old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'Description': 'Thingamajig', 'Old Row': 'No', 'Match Description': 'Thingamajig', 'Match Stock & Site': 'Unique ID 2', 'Match Score': '1.0', 'Match Number': '0', 'Matching Row Count': '1'}
     rows.append(old_row)
-    
+
     old_row = {'Site': 'Site A', 'Match Site': 'Site B', 'Stock & Site': 'Unique ID 1', 'Description': 'Thingamajig', 'Old Row': 'No', 'Match Description': 'Thingamajig The Fourth', 'Match Stock & Site': 'Unique ID 4', 'Match Score': '0.3333333333333333', 'Match Number': '1', 'Matching Row Count': 1}
     rows.append(old_row)
-            
+
     return rows
 
 def correct_input_2_rows_with_whitespace():
@@ -368,7 +368,7 @@ class IntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(rows), 8)
         r10, r11, r20, r21, r30, r31, r40, r41 = rows
         self.assert_description_match_2_inputs_and_outputs_correct(r10, r11, r20, r21, r30, r31, r40, r41)
-        
+
     def test_2_inputs_3_outputs_1_unchanged_things_that_should_always_be_true(self):
         rows = self.correct_2_inputs_3_outputs_1_unchanged_output
         self.assert_things_that_should_always_be_true(rows)
@@ -555,7 +555,44 @@ class MatchSitesTestCase(unittest.TestCase):
         output = match_sites({"1": rows, "2": rows2})
         for row in output:
             assert row["Match Score"] == "0.0"
-            
+
+    # NOTE: matches_json functionality testing is currently left unimplemented. To facilitate testing, the functionality should be rewritten so that file reads and writes are done outside of match_sites
+
+    def test_does_not_return_old_rows_if_exclude_unchanged_true(self):
+        """If exclude_unchanged == True, and all rows are old, return an empty list."""
+        # Note that currently if only some matches are old, exclude_unchanged is ignored for that site, all old matches are kept and marked "Old Row": "Yes" rather than "Unchanged"
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
+        output = match_sites({"1": rows, "2": rows2})
+        old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
+        assert match_sites({"1": rows, "2": rows2}, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=True) == []
+
+    def test_rows_marked_unchanged_if_exclude_unchanged_false(self):
+        """If exclude_unchanged == False, and all rows are old, return them with "Old Row": "Unchanged"."""
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
+        output = match_sites({"1": rows, "2": rows2})
+        old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
+        new_output = match_sites({"1": rows, "2": rows2}, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=False)
+        for row in new_output:
+            assert  row["Old Row"] == "Unchanged"
+
+    def test_if_some_old_and_some_new_old_row_should_be_yes_or_no(self):
+        """If some rows are old and some new, and exclude_unchanged == True, all rows should have "Old Row": "Yes" or "No" but not "Unchanged"."""
+        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
+        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
+        output = match_sites({"1": rows, "2": rows2})
+        old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
+        rows2.append({"Stock & Site": "3", "Stock Code": "C", "Stock Description": "Else"})
+        new_output = match_sites({"1": rows, "2": rows2} , old_item_ids_to_rows=old_item_ids_to_rows)
+        assert any([row["Old Row"] == "Yes" for row in new_output])
+        assert any([row["Old Row"] == "No" for row in new_output])
+        for row in new_output:
+            assert row["Old Row"] == "Yes" or row["Old Row"] == "No"
+
+    # UNTESTED: if some rows are old and some new, all old rows are preserved. Note that as far as I can tell sometimes old rows might appear twice, once with "Old Row": "Yes" as a preserved row,
+    # and once with "Old Row": "No" as a "new" match (this happens if no better match was found.)
+
 if __name__ == "__main__":
     unittest.main()
     #import file_utils
