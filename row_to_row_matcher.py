@@ -111,6 +111,15 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
     return desc_matches
 
 def combine_desc_matches(matches1, matches2, n):
+    """Combine description matches. Input and output is like {"item_id1": {"site1": {"Matches": [...], "Scores": [...], "Stock & Site": [...]}, ...}, ...}
+
+    Arguments:
+    matches1, matches2 -- Lists of dictionaries mapping item_ids ("Stock & Site" fields) to sites to matches.
+    n -- The amount of matches to return for each item_id and site
+
+    Returns:
+    A dict of dicts of dicts mapping item_ids to sites to matches.
+    """
     results = {}
     if not matches1:
         return matches2
@@ -139,6 +148,15 @@ def combine_desc_matches(matches1, matches2, n):
     return results
 
 def top_n_matches(m1, m2, n):
+    """Return the best n matches in m1 and m2.
+
+    Arguments:
+    m1, m2 -- Dictionaries with keys "Matches", "Scores" and "Stock & Site" mapped to lists of equal length
+    n (integer) -- The amount of matches to return
+
+    Returns:
+    A dictionary with keys "Matches", "Scores" and "Stock & Site" mapped to lists, combining m1 and m2 while removing duplicates. The lists are sorted and of length n.
+    """
     all_matches = list(zip(m1["Matches"], m1["Scores"], m1["Stock & Site"])) + list(zip(m2["Matches"], m2["Scores"], m2["Stock & Site"]))
     all_matches = sorted(all_matches, key = lambda match: float(match[1]), reverse = True)
     #all_matches = list(OrderedDict.fromkeys(all_matches)) #Remove duplicates
@@ -163,6 +181,26 @@ def top_n_matches(m1, m2, n):
         result_matches["Stock & Site"].append(match[2])
     return result_matches
 
+def rows_to_matches(rows):
+    """Convert rows to matches format required by top_n_matches.
+    
+    Arguments:
+    rows -- list of dictionaries representing rows
+    
+    Returns:
+    Matches as a dictionary of the form {"Matches": [...], "Scores": [...], "Stock & Site": []}
+    """
+    matches = {"Matches": [], "Scores": [], "Stock & Site": []}
+    # Rows need to be sorted correctly for ["Stock & Site"][-1] to target the right match
+    rows = sorted(rows, key = lambda r: r["Match Number"])
+    for row in rows:
+        if not row["Match Description"] in matches["Matches"]:
+            matches["Scores"].append(float(row["Match Score"]))
+            matches["Matches"].append(row["Match Description"])
+            matches["Stock & Site"].append(set())
+        # else it should be the case that matches["Matches"][-1] == row["Match Description"] because of sorting
+        matches["Stock & Site"][-1].add(row["Match Stock & Site"])
+    return matches
 
 def number(rows, start):
     num = start
@@ -180,6 +218,18 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
     return results
 
 def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
+    """Match rows to rows.
+
+    Arguments:
+    site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
+    old_site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
+    old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
+    matches_json (string) -- A string representing the filename of a json file containing old matches to speed up processing
+    exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
+
+    Returns:
+    A list of dictionaries representing rows with matches.
+    """
     #num = 0
     #for site in site_rows:
     #    site_rows[site], num = number(site_rows[site], num)
@@ -199,49 +249,33 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
         item_id = str(row["Stock & Site"])
         all_sites = set()
         if item_id in desc_matches:
-            all_sites = all_sites | set(desc_matches[item_id])
+            all_sites = set(desc_matches[item_id])
         for site in all_sites:
             if site == row["Site"]:
                 continue
-            row_base = {}
-            row_base["Stock & Site"] = item_id
-            row_base["Site"] = row["Site"]
-            row_base["Description"] = row["Description"]
-            row_base["Match Site"] = site
             old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)
-            old_matches = {"Matches": [], "Scores": [], "Stock & Site": []}
-            old_rows = sorted(old_rows, key = lambda r: r["Match Number"])
-            for r in old_rows:
-                if not r["Match Description"] in old_matches["Matches"]:
-                    old_matches["Scores"].append(float(r["Match Score"]))
-                    old_matches["Matches"].append(r["Match Description"])
-                    old_matches["Stock & Site"].append(set())
-                old_matches["Stock & Site"][-1].add(r["Match Stock & Site"])
+            old_matches = rows_to_matches(old_rows)
 
-            if item_id in desc_matches:
-                if site in desc_matches[item_id]:
-                    matches = desc_matches[item_id][site]
-                    if matches == old_matches:
-                        row_base["Old Row"] = "Unchanged"
-                    else:
-                        matches = top_n_matches(matches, old_matches, 10)
-                        for old_row in old_rows:
-                            old_row["Old Row"] = "Yes"
-                            final_rows.append(old_row)
-                        row_base["Old Row"] = "No"
-                    for i, (match, score, desc_match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
-                        if row_base["Old Row"] == "Unchanged" and exclude_unchanged:
-                            break
-                        for match_row in desc_match_rows:
-                            new_row = copy.deepcopy(row_base)
-                            new_row["Match Description"] = match
-                            new_row["Match Stock & Site"] = match_row
-                            new_row["Match Score"] = str(score)
-                            new_row["Match Number"] = str(i)
-                            new_row["Matching Row Count"] = str(len(desc_match_rows))
-                            #Prevent duplicate rows. TODO: Figure out how this happens.
-                            #if not new_row in final_rows:
-                            final_rows.append(new_row)
+            row_base = {"Stock & Site": item_id, "Site": row["Site"], "Description": row["Description"], "Match Site": site}
+
+            matches = desc_matches[item_id][site]
+            if matches == old_matches:
+                if exclude_unchanged:
+                    # Results unchanged for this site, skip to next one
+                    continue
+                row_base["Old Row"] = "Unchanged"
+            else:
+                matches = top_n_matches(matches, old_matches, 10)
+                for old_row in old_rows:
+                    old_row["Old Row"] = "Yes"
+                    final_rows.append(old_row)
+                row_base["Old Row"] = "No"
+            for i, (match, score, desc_match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
+                for match_row in desc_match_rows:
+                    new_row = {**row_base, "Match Description": match, "Match Stock & Site": match_row, "Match Score": str(score), "Match Number": str(i), "Matching Row Count": str(len(desc_match_rows))}
+                    #Prevent duplicate rows. TODO: Figure out how this happens.
+                    #if not new_row in final_rows:
+                    final_rows.append(new_row)
 
     return final_rows
 
@@ -306,6 +340,15 @@ def match_sites_dataframe(dataframe, matches_json=""):
     return matches_df
 
 def generate_site_to_rows_dict(rows, old=False):
+    """Generates site to rows dictionary.
+
+    Arguments:
+    rows -- A list of dictionaries representing rows
+    old (bool) -- If True, change key "Description" to "Stock Description" and remove rows with duplicate "Stock & Site"
+
+    Returns:
+    A dictionary mapping each site to a list of rows related to that site
+    """
     if old:
         item_ids = []
         new_rows = []
@@ -363,6 +406,7 @@ if __name__=="__main__":
 
     if output_file:
         matches_df = match_sites_dataframe(df, matches_json=matches_json)
+        matches_df = matches_df.sort_values(by=["Stock & Site", "Match Stock & Site"])
         result_rows = matches_df.to_dict("records")
         file_utils.save_csv(output_file, result_rows, fieldnames=OUTPUT_FIELDNAMES)
     else:
