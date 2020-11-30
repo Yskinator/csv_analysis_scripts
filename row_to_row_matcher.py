@@ -217,10 +217,6 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites2(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
-    """A reimplementation of match_sites."""
-    return []
-
 def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
     """Match rows to rows.
 
