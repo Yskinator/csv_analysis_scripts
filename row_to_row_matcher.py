@@ -278,14 +278,14 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
+def match_sites(site_rows, old_site_rows={}, old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True):
     """Match rows to rows.
 
     Arguments:
     site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
     old_site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
     old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
-    matches_json (string) -- A string representing the filename of a json file containing old matches to speed up processing
+    desc_matches -- A dict of dicts of dicts mapping item_ids to sites to matches.
     exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
 
     Returns:
@@ -294,12 +294,8 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
     rows = base_rows_from(site_rows)
     old_rows = base_rows_from(old_site_rows)
     rows = rows + old_rows
-    if matches_json and file_utils.file_exists(matches_json):
-        desc_matches = file_utils.read_json(matches_json)
-    else:
+    if not desc_matches:
         desc_matches = match_by_description(site_rows, old_site_rows)
-        if matches_json:
-            file_utils.save_json(matches_json, desc_matches)
     final_rows = []
     for row in rows:
         row = copy.deepcopy(row)
@@ -343,10 +339,19 @@ def match_sites_dataframe(dataframe, matches_json=""):
     description based matches.
     INPUTS:
      - dataframe
-     - matches_json
+     - matches_json -- A string representing the filename of a json file containing old matches to speed up processing
     OUTPUTS:
      - matches_df
     '''
+
+    # Generate desc_matches based on matches_json
+    desc_matches = {}
+    if matches_json:
+        if file_utils.file_exists(matches_json):
+            desc_matches = file_utils.read_json(matches_json)
+        else:
+            desc_matches = match_by_description(site_rows, old_site_rows)
+            file_utils.save_json(matches_json, desc_matches)
 
     #Missing values should be represented by empty strings
     dataframe = dataframe.fillna(value="")
@@ -389,7 +394,7 @@ def match_sites_dataframe(dataframe, matches_json=""):
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
-    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
+    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches)
     matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
