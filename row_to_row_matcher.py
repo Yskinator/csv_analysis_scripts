@@ -260,13 +260,6 @@ def rows_to_matches(rows):
         matches["Stock & Site"][-1].add(row["Match Stock & Site"])
     return matches
 
-def number(rows, start):
-    num = start
-    for row in rows:
-        row["Item #"] = str(num)
-        num += 1
-    return rows, num
-
 def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
     """Given a dictionary mapping ids to lists of rows, find all rows with the given id and Match Site and return them in a list.
 
@@ -298,10 +291,6 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
     Returns:
     A list of dictionaries representing rows with matches.
     """
-    #num = 0
-    #for site in site_rows:
-    #    site_rows[site], num = number(site_rows[site], num)
-    sites = set(site_rows.keys()) | set(old_site_rows.keys())
     rows = base_rows_from(site_rows)
     old_rows = base_rows_from(old_site_rows)
     rows = rows + old_rows
