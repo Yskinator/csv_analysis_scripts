@@ -1,11 +1,13 @@
+"""Match each row to other rows with similar descriptions."""
+
 import argparse
-import concurrent.futures
-import pandas
-import sys
 import time
 import copy
+#import concurrent.futures
 
-from collections import defaultdict, OrderedDict
+import pandas
+
+from collections import OrderedDict
 
 import file_utils
 from matcher import preprocess, most_matching_words
@@ -17,6 +19,14 @@ INPUT_FIELDNAMES = ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 ALL_FIELDNAMES = list(set(INPUT_FIELDNAMES) | set(OUTPUT_FIELDNAMES))
 
 def base_rows_from(site_rows):
+    """Take a dictionary mapping sites to lists of rows and generate a combined list of rows augmented with a Site field.
+
+    Arguments:
+    site_rows -- A dictionary mapping sites to a list of dictionaries representing rows
+
+    Returns:
+    A list of dictionaries representing all rows in site_rows in the format {"Site": ..., "Stock & Site": ..., "Stock Code": ..., "Description": ...}
+    """
     base_rows = []
     for site, rows in site_rows.items():
         for row in rows:
@@ -29,6 +39,14 @@ def base_rows_from(site_rows):
     return base_rows
 
 def generate_item_ids_to_rows(rows):
+    """Take a list of rows and return a dictionary mapping each site to a list of rows for that site.
+
+    Arguments:
+    rows -- list of dictionaries representing rows
+
+    Returns:
+    A dictionary mapping item ids ("Stock & Site") to lists of rows
+    """
     item_ids_to_rows = {}
     for row in rows:
         item_id = row["Stock & Site"]
@@ -38,6 +56,14 @@ def generate_item_ids_to_rows(rows):
     return item_ids_to_rows
 
 def preprocess_all(site_rows):
+    """Take a dictionary mapping sites to rows and return a dictionary mapping sites to properly preprocessed dictionaries. (See return format below.)
+
+    Arguments:
+    site_rows -- a dictionary mapping sites to dictionaries representing rows
+
+    Returns:
+    A dictionary of the form {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
+    """
     site_to_descs = {}
     abbrevs = get_abbrevs()
     for site, rows in site_rows.items():
@@ -53,6 +79,12 @@ def preprocess_all(site_rows):
     return site_to_descs
 
 def get_abbrevs():
+    """Read abbreviations from file and return them in a list.
+
+    Returns:
+    A list of dictionaries with fields "Abbreviation" and "Expanded"
+    """
+    # Note: might make more sense to just have one dictionary rather than a list of dictionaries
     abbrevs = file_utils.read_csv("desc_abbrevs.csv")
     for abbrev in abbrevs:
         abbrev["Abbreviation"] = abbrev["Abbreviation"].lower()
@@ -60,6 +92,15 @@ def get_abbrevs():
     return abbrevs
 
 def generate_jobs(site_rows, site_to_descs_preprocessed):
+    """Take rows and preprocessed descriptions and return top 10 matches and Jaccard scores for each stock_id and site in a dictionary.
+
+    Arguments:
+    site_rows -- a dictionary mapping sites to lists of dictionaries representing rows
+    site_to_descs_preprocessed -- A dictionary of the format {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
+
+    Returns:
+    A dictionary of the form {"stock_id": {"site": ([descending list of top 10 matches], [descending list of top 10 scores]), ...}, ...}
+    """
     jobs = {}
     abbrevs = get_abbrevs()
     for home, rows in site_rows.items():
@@ -74,6 +115,16 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
     return jobs
 
 def match_by_description(site_rows, old_site_rows):
+    """Given a list of site_rows, process them into a dictionary of the form
+    {"item_id1": {"site1": {"Matches": [...], "Scores": [...], "Stock & Site": [...]}, ...}, ...}.
+
+    Arguments:
+    site_rows -- a list of dictionaries representing rows
+    old_site_rows -- a list of dictionaries representing rows from previous output
+
+    Returns:
+    A dict of dicts of dicts mapping item_ids to sites to matches.
+    """
     site_to_descs_preprocessed = preprocess_all(site_rows)
     old_site_to_descs_preprocessed = preprocess_all(old_site_rows)
     all_site_to_descs_preprocessed = {}
@@ -95,6 +146,15 @@ def match_by_description(site_rows, old_site_rows):
     return desc_matches
 
 def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
+    """Convert jobs to the matches format required by top_n_matches, mapping item_ids to sites to matches.
+
+    Arguments:
+    jobs -- A dictionary of the form {"stock_id": {"site": ([descending list of top 10 matches], [descending list of top 10 scores]), ...}, ...}
+    all_site_to_descs_preprocessed -- A dictionary of the format {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
+
+    Returns:
+    A dict of dicts of dicts mapping item_ids to sites to matches.
+    """
     desc_matches = {}
     for item_id, item_jobs in jobs.items():
         for site, job in item_jobs.items():
@@ -183,10 +243,10 @@ def top_n_matches(m1, m2, n):
 
 def rows_to_matches(rows):
     """Convert rows to matches format required by top_n_matches.
-    
+
     Arguments:
     rows -- list of dictionaries representing rows
-    
+
     Returns:
     Matches as a dictionary of the form {"Matches": [...], "Scores": [...], "Stock & Site": []}
     """
@@ -202,14 +262,17 @@ def rows_to_matches(rows):
         matches["Stock & Site"][-1].add(row["Match Stock & Site"])
     return matches
 
-def number(rows, start):
-    num = start
-    for row in rows:
-        row["Item #"] = str(num)
-        num += 1
-    return rows, num
-
 def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
+    """Given a dictionary mapping ids to lists of rows, find all rows with the given id and Match Site and return them in a list.
+
+    Arguments:
+    old_item_ids_to_rows -- a dictionary mapping ids to lists of row dictionaries. The rows should have a "Match Site" field.
+    item_id -- id to look for. Must be a key of old_item_ids_to_rows.
+    match_site -- value of Match Site field to look for.
+
+    Returns:
+    A list of row dictionaries with the desired id (normally "Stock & Site") and Match Site.
+    """
     results = []
     if item_id in old_item_ids_to_rows:
         for row in old_item_ids_to_rows[item_id]:
@@ -217,32 +280,24 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matches_json="", exclude_unchanged = True):
+def match_sites(site_rows, old_site_rows={}, old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True):
     """Match rows to rows.
 
     Arguments:
     site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
     old_site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
     old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
-    matches_json (string) -- A string representing the filename of a json file containing old matches to speed up processing
+    desc_matches -- A dict of dicts of dicts mapping item_ids to sites to matches.
     exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
 
     Returns:
     A list of dictionaries representing rows with matches.
     """
-    #num = 0
-    #for site in site_rows:
-    #    site_rows[site], num = number(site_rows[site], num)
-    sites = set(site_rows.keys()) | set(old_site_rows.keys())
     rows = base_rows_from(site_rows)
     old_rows = base_rows_from(old_site_rows)
     rows = rows + old_rows
-    if matches_json and file_utils.file_exists(matches_json):
-        desc_matches = file_utils.read_json(matches_json)
-    else:
+    if not desc_matches:
         desc_matches = match_by_description(site_rows, old_site_rows)
-        if matches_json:
-            file_utils.save_json(matches_json, desc_matches)
     final_rows = []
     for row in rows:
         row = copy.deepcopy(row)
@@ -286,7 +341,7 @@ def match_sites_dataframe(dataframe, matches_json=""):
     description based matches.
     INPUTS:
      - dataframe
-     - matches_json
+     - matches_json -- A string representing the filename of a json file containing old matches to speed up processing
     OUTPUTS:
      - matches_df
     '''
@@ -332,7 +387,17 @@ def match_sites_dataframe(dataframe, matches_json=""):
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
-    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json)
+
+    # Generate desc_matches based on matches_json
+    desc_matches = {}
+    if matches_json:
+        if file_utils.file_exists(matches_json):
+            desc_matches = file_utils.read_json(matches_json)
+        else:
+            desc_matches = match_by_description(site_rows, old_site_rows)
+            file_utils.save_json(matches_json, desc_matches)
+
+    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches)
     matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
@@ -390,19 +455,13 @@ if __name__=="__main__":
         old_rows = file_utils.read_csv(output_file)
     else:
         old_rows = []
-    site_rows = generate_site_to_rows_dict(sites_rows)
-    old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
-    old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
-    #site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
-    #site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
+
     ndf = pandas.DataFrame(sites_rows)
     odf = pandas.DataFrame(old_rows)
     all_columns = ndf.columns.union(odf.columns)
     ndf = ndf.reindex(columns = all_columns, fill_value="-1")
     odf = odf.reindex(columns = all_columns, fill_value="-1")
     df = pandas.concat([ndf, odf]).reset_index(drop=True)
-    #with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-    #    print(df)
 
     if output_file:
         matches_df = match_sites_dataframe(df, matches_json=matches_json)
@@ -413,9 +472,7 @@ if __name__=="__main__":
         matches_df = match_sites_dataframe(df)
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(matches_df.head(n=10))
-    #print(result_rows[:10])
-    #exclude_unchanged = False
-    #result_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json, exclude_unchanged)
+
     etime = time.time()
     ttime = etime-stime
     print('Time = ', ttime, 's')
