@@ -344,15 +344,6 @@ def match_sites_dataframe(dataframe, matches_json=""):
      - matches_df
     '''
 
-    # Generate desc_matches based on matches_json
-    desc_matches = {}
-    if matches_json:
-        if file_utils.file_exists(matches_json):
-            desc_matches = file_utils.read_json(matches_json)
-        else:
-            desc_matches = match_by_description(site_rows, old_site_rows)
-            file_utils.save_json(matches_json, desc_matches)
-
     #Missing values should be represented by empty strings
     dataframe = dataframe.fillna(value="")
 
@@ -394,6 +385,16 @@ def match_sites_dataframe(dataframe, matches_json=""):
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
+
+    # Generate desc_matches based on matches_json
+    desc_matches = {}
+    if matches_json:
+        if file_utils.file_exists(matches_json):
+            desc_matches = file_utils.read_json(matches_json)
+        else:
+            desc_matches = match_by_description(site_rows, old_site_rows)
+            file_utils.save_json(matches_json, desc_matches)
+
     matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches)
     matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
     #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
