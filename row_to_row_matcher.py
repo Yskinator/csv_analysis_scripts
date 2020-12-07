@@ -1,11 +1,13 @@
+"""Match each row to other rows with similar descriptions."""
+
 import argparse
-import concurrent.futures
-import pandas
-import sys
 import time
 import copy
+#import concurrent.futures
 
-from collections import defaultdict, OrderedDict
+import pandas
+
+from collections import OrderedDict
 
 import file_utils
 from matcher import preprocess, most_matching_words
@@ -453,19 +455,13 @@ if __name__=="__main__":
         old_rows = file_utils.read_csv(output_file)
     else:
         old_rows = []
-    site_rows = generate_site_to_rows_dict(sites_rows)
-    old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
-    old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
-    #site_rows = {"FQMO": fqmo_rows, "Kalumbila": kalumbila_rows}
-    #site_to_dataframe_dict = {"FQMO": pandas.DataFrame(fqmo_rows), "Kalumbila": pandas.DataFrame(kalumbila_rows)}
+
     ndf = pandas.DataFrame(sites_rows)
     odf = pandas.DataFrame(old_rows)
     all_columns = ndf.columns.union(odf.columns)
     ndf = ndf.reindex(columns = all_columns, fill_value="-1")
     odf = odf.reindex(columns = all_columns, fill_value="-1")
     df = pandas.concat([ndf, odf]).reset_index(drop=True)
-    #with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-    #    print(df)
 
     if output_file:
         matches_df = match_sites_dataframe(df, matches_json=matches_json)
@@ -476,9 +472,7 @@ if __name__=="__main__":
         matches_df = match_sites_dataframe(df)
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(matches_df.head(n=10))
-    #print(result_rows[:10])
-    #exclude_unchanged = False
-    #result_rows, fieldnames = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, matches_json, exclude_unchanged)
+
     etime = time.time()
     ttime = etime-stime
     print('Time = ', ttime, 's')
