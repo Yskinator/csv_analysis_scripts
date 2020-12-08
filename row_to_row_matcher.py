@@ -19,7 +19,7 @@ INPUT_FIELDNAMES = ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 ALL_FIELDNAMES = list(set(INPUT_FIELDNAMES) | set(OUTPUT_FIELDNAMES))
 
 def base_rows_from(site_rows):
-    """Take a dictionary mapping sites to lists of rows and generate a combined list of rows augmented with a Site field.
+    """Take a list of rows and change key 'Stock Description' -> 'Description'
 
     Arguments:
     site_rows -- A dictionary mapping sites to a list of dictionaries representing rows
@@ -28,14 +28,13 @@ def base_rows_from(site_rows):
     A list of dictionaries representing all rows in site_rows in the format {"Site": ..., "Stock & Site": ..., "Stock Code": ..., "Description": ...}
     """
     base_rows = []
-    for site, rows in site_rows.items():
-        for row in rows:
-            base_row = {}
-            base_row["Site"] = site
-            base_row["Stock & Site"] = row["Stock & Site"]
-            base_row["Stock Code"] = row["Stock Code"]
-            base_row["Description"] = row["Stock Description"]
-            base_rows.append(base_row)
+    for row in site_rows:
+        base_row = {}
+        base_row["Site"] = row["Site"]
+        base_row["Stock & Site"] = row["Stock & Site"]
+        base_row["Stock Code"] = row["Stock Code"]
+        base_row["Description"] = row["Stock Description"]
+        base_rows.append(base_row)
     return base_rows
 
 def generate_item_ids_to_rows(rows):
@@ -56,25 +55,28 @@ def generate_item_ids_to_rows(rows):
     return item_ids_to_rows
 
 def preprocess_all(site_rows):
-    """Take a dictionary mapping sites to rows and return a dictionary mapping sites to properly preprocessed dictionaries. (See return format below.)
+    """Take a list of rows and return a dictionary mapping sites to properly preprocessed dictionaries. (See return format below.)
 
     Arguments:
-    site_rows -- a dictionary mapping sites to dictionaries representing rows
+    site_rows -- a list of dictionaries representing rows
 
     Returns:
     A dictionary of the form {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
     """
     site_to_descs = {}
     abbrevs = get_abbrevs()
-    for site, rows in site_rows.items():
-        desc_to_preprocessed = {}
-        for row in rows:
-            desc = row["Stock Description"].strip()
-            if desc not in desc_to_preprocessed:
-                relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "Stock Code": row["Stock Code"], "Stock & Site": {row["Stock & Site"]}}
-                desc_to_preprocessed[desc] = relevant_data
-            else:
-                desc_to_preprocessed[desc]["Stock & Site"].add(row["Stock & Site"])
+    site = None
+    site_rows_sorted = sorted(site_rows, key=lambda row: row["Site"])
+    for row in site_rows_sorted:
+        if row["Site"] != site:
+            site = row["Site"]
+            desc_to_preprocessed = {}
+        desc = row["Stock Description"].strip()
+        if desc not in desc_to_preprocessed:
+            relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "Stock Code": row["Stock Code"], "Stock & Site": {row["Stock & Site"]}}
+            desc_to_preprocessed[desc] = relevant_data
+        else:
+            desc_to_preprocessed[desc]["Stock & Site"].add(row["Stock & Site"])
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
 
@@ -95,7 +97,7 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
     """Take rows and preprocessed descriptions and return top 10 matches and Jaccard scores for each stock_id and site in a dictionary.
 
     Arguments:
-    site_rows -- a dictionary mapping sites to lists of dictionaries representing rows
+    site_rows -- a list of dictionaries representing rows
     site_to_descs_preprocessed -- A dictionary of the format {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
 
     Returns:
@@ -103,15 +105,14 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
     """
     jobs = {}
     abbrevs = get_abbrevs()
-    for home, rows in site_rows.items():
-        for row in rows:
-            row_jobs = {}
-            desc = row["Stock Description"]
-            desc = desc.strip()
-            preprocessed = preprocess(desc, abbrevs)
-            for site in site_to_descs_preprocessed:
-                row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
-            jobs[row["Stock & Site"]] = row_jobs
+    for row in site_rows:
+        row_jobs = {}
+        desc = row["Stock Description"]
+        desc = desc.strip()
+        preprocessed = preprocess(desc, abbrevs)
+        for site in site_to_descs_preprocessed:
+            row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
+        jobs[row["Stock & Site"]] = row_jobs
     return jobs
 
 def match_by_description(site_rows, old_site_rows):
@@ -425,15 +426,7 @@ def generate_site_to_rows_dict(rows, old=False):
                 item_ids.append(item_id)
                 new_rows.append(row)
         rows = new_rows
-
-    site_to_rows = {}
-    sites = []
-    for row in rows:
-        row = copy.deepcopy(row)
-        if row["Site"] not in site_to_rows:
-            site_to_rows[row["Site"]] = []
-        site_to_rows[row["Site"]].append(row)
-    return site_to_rows
+    return rows
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="Script to match similar rows in data from different sites.")
