@@ -72,19 +72,6 @@ def preprocess_all(site_rows, abbrevs=[]):
         site_to_descs[site] = desc_to_preprocessed
     return site_to_descs
 
-def get_abbrevs():
-    """Read abbreviations from file and return them in a list.
-
-    Returns:
-    A list of dictionaries with fields "Abbreviation" and "Expanded"
-    """
-    # Note: might make more sense to just have one dictionary rather than a list of dictionaries
-    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
-    for abbrev in abbrevs:
-        abbrev["Abbreviation"] = abbrev["Abbreviation"].lower()
-        abbrev["Expanded"] = abbrev["Expanded"].lower()
-    return abbrevs
-
 def generate_jobs(site_rows, site_to_descs_preprocessed, abbrevs=[]):
     """Take rows and preprocessed descriptions and return top 10 matches and Jaccard scores for each stock_id and site in a dictionary.
 
@@ -118,7 +105,7 @@ def match_by_description(site_rows, old_site_rows):
     Returns:
     A dict of dicts of dicts mapping item_ids to sites to matches.
     """
-    abbrevs = get_abbrevs()
+    abbrevs = file_utils.read_csv("desc_abbrevs.csv")
     site_to_descs_preprocessed = preprocess_all(site_rows, abbrevs=abbrevs)
     old_site_to_descs_preprocessed = preprocess_all(old_site_rows, abbrevs=abbrevs)
     all_site_to_descs_preprocessed = {}
