@@ -46,17 +46,17 @@ def generate_item_ids_to_rows(rows):
         item_ids_to_rows[item_id].append(row)
     return item_ids_to_rows
 
-def preprocess_all(site_rows):
+def preprocess_all(site_rows, abbrevs=[]):
     """Take a list of rows and return a dictionary mapping sites to properly preprocessed dictionaries. (See return format below.)
 
     Arguments:
     site_rows -- A list of dictionaries representing rows
+    abbrevs -- a list of dictionaries with keys "Abbreviation" and "Expanded"
 
     Returns:
     A dictionary of the form {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
     """
     site_to_descs = {}
-    abbrevs = get_abbrevs()
     site = None
     site_rows_sorted = sorted(site_rows, key=lambda row: row["Site"])
     for row in site_rows_sorted:
@@ -85,18 +85,18 @@ def get_abbrevs():
         abbrev["Expanded"] = abbrev["Expanded"].lower()
     return abbrevs
 
-def generate_jobs(site_rows, site_to_descs_preprocessed):
+def generate_jobs(site_rows, site_to_descs_preprocessed, abbrevs=[]):
     """Take rows and preprocessed descriptions and return top 10 matches and Jaccard scores for each stock_id and site in a dictionary.
 
     Arguments:
     site_rows -- a list of dictionaries representing rows
     site_to_descs_preprocessed -- A dictionary of the format {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
+    abbrevs -- a list of dictionaries with keys "Abbreviation" and "Expanded"
 
     Returns:
     A dictionary of the form {"stock_id": {"site": ([descending list of top 10 matches], [descending list of top 10 scores]), ...}, ...}
     """
     jobs = {}
-    abbrevs = get_abbrevs()
     for row in site_rows:
         row_jobs = {}
         desc = row["Stock Description"]
@@ -118,8 +118,9 @@ def match_by_description(site_rows, old_site_rows):
     Returns:
     A dict of dicts of dicts mapping item_ids to sites to matches.
     """
-    site_to_descs_preprocessed = preprocess_all(site_rows)
-    old_site_to_descs_preprocessed = preprocess_all(old_site_rows)
+    abbrevs = get_abbrevs()
+    site_to_descs_preprocessed = preprocess_all(site_rows, abbrevs=abbrevs)
+    old_site_to_descs_preprocessed = preprocess_all(old_site_rows, abbrevs=abbrevs)
     all_site_to_descs_preprocessed = {}
     for site in (set(site_to_descs_preprocessed.keys()) | set(old_site_to_descs_preprocessed.keys())):
         all_site_to_descs_preprocessed[site] = {}
@@ -128,9 +129,9 @@ def match_by_description(site_rows, old_site_rows):
         if site in old_site_to_descs_preprocessed:
             all_site_to_descs_preprocessed[site].update(old_site_to_descs_preprocessed[site])
     desc_matches = {}
-    jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed)
-    jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed)
-    jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed)
+    jobs_new_to_new = generate_jobs(site_rows, site_to_descs_preprocessed, abbrevs=abbrevs)
+    jobs_new_to_old = generate_jobs(site_rows, old_site_to_descs_preprocessed, abbrevs=abbrevs)
+    jobs_old_to_new = generate_jobs(old_site_rows, site_to_descs_preprocessed, abbrevs=abbrevs)
     nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
     no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
     on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
