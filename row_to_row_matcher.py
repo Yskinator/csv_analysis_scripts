@@ -18,24 +18,16 @@ INPUT_FIELDNAMES = ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 
 ALL_FIELDNAMES = list(set(INPUT_FIELDNAMES) | set(OUTPUT_FIELDNAMES))
 
-def base_rows_from(site_rows):
-    """Take a list of rows and change key 'Stock Description' -> 'Description'
+def base_rows_from(rows):
+    """Take a list of rows and add key 'Description' with values from row['Stock Description'].
 
     Arguments:
-    site_rows -- A dictionary mapping sites to a list of dictionaries representing rows
+    rows -- A list of dictionaries representing rows
 
     Returns:
     A list of dictionaries representing all rows in site_rows in the format {"Site": ..., "Stock & Site": ..., "Stock Code": ..., "Description": ...}
     """
-    base_rows = []
-    for row in site_rows:
-        base_row = {}
-        base_row["Site"] = row["Site"]
-        base_row["Stock & Site"] = row["Stock & Site"]
-        base_row["Stock Code"] = row["Stock Code"]
-        base_row["Description"] = row["Stock Description"]
-        base_rows.append(base_row)
-    return base_rows
+    return [{**row, "Description": row["Stock Description"]} for row in rows]
 
 def generate_item_ids_to_rows(rows):
     """Take a list of rows and return a dictionary mapping each site to a list of rows for that site.
@@ -58,7 +50,7 @@ def preprocess_all(site_rows):
     """Take a list of rows and return a dictionary mapping sites to properly preprocessed dictionaries. (See return format below.)
 
     Arguments:
-    site_rows -- a list of dictionaries representing rows
+    site_rows -- A list of dictionaries representing rows
 
     Returns:
     A dictionary of the form {"site": {"Stock Description": {"Preprocessed": ..., "Stock Code": ..., "Stock & Site": {...}}, ...}, ...}
@@ -413,7 +405,7 @@ def generate_site_to_rows_dict(rows, old=False):
     old (bool) -- If True, change key "Description" to "Stock Description" and remove rows with duplicate "Stock & Site"
 
     Returns:
-    A dictionary mapping each site to a list of rows related to that site
+    A list of rows
     """
     if old:
         item_ids = []
