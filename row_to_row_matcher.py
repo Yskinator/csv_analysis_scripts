@@ -143,8 +143,6 @@ def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
             #results, scores = job.result()
             if str(item_id) not in desc_matches:
                 desc_matches[str(item_id)] = {}
-            #site_to_descs_preprocessed[site][results[0]]["Stock & Site"]
-            #desc_matches[str(item_id)][site] = {"Matches": [site_to_descs_preprocessed[site][result]["Stock & Site"] for result in results], "Scores": [score for score in scores]}
             desc_matches[str(item_id)][site] = {"Matches": results, "Scores": scores, "Stock & Site": []}
             for result in results:
                 stock_and_site = all_site_to_descs_preprocessed[site][result]["Stock & Site"]
@@ -346,26 +344,17 @@ def match_sites_dataframe(dataframe, matches_json=""):
             #No new rows.
             return pandas.DataFrame()
         odf = dataframe[dataframe["Match Site"] != "-1"]
-        # n = ndf.iloc[0]
-        # ni = n.index[str(n).strip().replace(".0","") != "-1"]
-        # ndf = ndf.loc[:, ni]
         if odf.empty:
             old_rows = []
         else:
-            # o = odf.iloc[0]
-            # oi = o.index[str(o).strip().replace(".0","") != "-1"]
-            # odf = odf.loc[:, oi]
             old_rows = odf.to_dict("records")
         new_rows = ndf.to_dict("records")
     else:
         new_rows = dataframe.to_dict("records")
         old_rows = []
-    #print(ndf.head(n=10))
-    #print(odf.head(n=10))
     site_rows = base_rows_from(new_rows)
     old_site_rows = remove_duplicate_rows(old_rows)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
-    #print('from match_sites_dataframe')
 
     # Generate desc_matches based on matches_json
     desc_matches = {}
@@ -378,7 +367,6 @@ def match_sites_dataframe(dataframe, matches_json=""):
 
     matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches)
     matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
-    #matches_df['OEM Code Match'] = matches_df['OEM Code Match'].fillna(value="")
     matches_df = matches_df.fillna(value="")
     matches_df = matches_df[OUTPUT_FIELDNAMES]
     return matches_df
