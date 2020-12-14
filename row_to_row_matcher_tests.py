@@ -522,37 +522,40 @@ class TopNMatchesUnitTest(unittest.TestCase):
 class MatchSitesTestCase(unittest.TestCase):
     """Tests for match_sites."""
 
+    def setUp(self):
+        """Set up needed variables."""
+        self.rows = [{"Site": "1", "Stock & Site": "1", "Stock Code": "A", "Description": "Thing"},
+                     {"Site": "2", "Stock & Site": "2", "Stock Code": "B", "Description": "Some"}]
+
     def test_returns_empty_list_if_empty(self):
-        """If input dictionary is empty, return an empty list."""
-        assert match_sites({}) == []
+        """If input list is empty, return an empty list."""
+        assert match_sites([]) == []
 
     def test_every_input_row_has_at_least_one_match(self):
         """All input rows should have at least one match in the output."""
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        assert len(match_sites({"1": rows, "2": rows})) >= 2
-        assert len(match_sites({"1": rows, "2": rows, "3": rows})) >= 3
+        assert len(match_sites(self.rows)) >= 2
+        new_rows = self.rows+[{"Site": "3", "Stock & Site": "3", "Stock Code": "C", "Description": "Else"}]
+        assert len(match_sites(new_rows)) >= 3
 
     def test_all_matches_should_contain_keys(self):
         """All output matches should contain the keys 'Match Site', 'Old Row', 'Match Description', 'Match Stock & Site', 'Match Score', 'Match Number' and 'Matching Row Count'"""
         required_keys = ["Match Site", "Old Row", "Match Description", "Match Stock & Site", "Match Score", "Match Number", "Matching Row Count"]
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        output = match_sites({"1": rows, "2": rows, "3": rows})
+        rows = [{"Site": "1", "Stock & Site": "1", "Stock Code": "A", "Description": "Thing"}, {"Site": "2", "Stock & Site": "1", "Stock Code": "A", "Description": "Thing"}, {"Site": "3", "Stock & Site": "1", "Stock Code": "A", "Description": "Thing"}]
+        output = match_sites(rows)
         for match in output:
             assert all([key in match for key in required_keys])
 
     def test_identical_rows_should_match_perfectly(self):
         """Identical rows should match each other with a match score of 1.0."""
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        output = match_sites({"1": rows, "2": rows})
+        rows = [{"Site": "1","Stock & Site": "1", "Stock Code": "A", "Description": "Thing"}, {"Site": "2","Stock & Site": "1", "Stock Code": "A", "Description": "Thing"}]
+        output = match_sites(rows)
         expected_output = [{'Stock & Site': '1', 'Site': '1', 'Description': 'Thing', 'Match Site': '2', 'Old Row': 'No', 'Match Description': 'Thing', 'Match Stock & Site': '1', 'Match Score': '1.0', 'Match Number': '0', 'Matching Row Count': '1'}, {'Stock & Site': '1', 'Site': '2', 'Description': 'Thing', 'Match Site': '1', 'Old Row': 'No', 'Match Description': 'Thing', 'Match Stock & Site': '1', 'Match Score': '1.0', 'Match Number': '0', 'Matching Row Count': '1'}]
         for row in expected_output:
             assert row in output
 
     def test_bad_match_should_score_zero(self):
         """If row has no valid matches, best match score should be 0.0."""
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
-        output = match_sites({"1": rows, "2": rows2})
+        output = match_sites(self.rows)
         for row in output:
             assert row["Match Score"] == "0.0"
 
@@ -561,30 +564,24 @@ class MatchSitesTestCase(unittest.TestCase):
     def test_does_not_return_old_rows_if_exclude_unchanged_true(self):
         """If exclude_unchanged == True, and all rows are old, return an empty list."""
         # Note that currently if only some matches are old, exclude_unchanged is ignored for that site, all old matches are kept and marked "Old Row": "Yes" rather than "Unchanged"
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
-        output = match_sites({"1": rows, "2": rows2})
+        output = match_sites(self.rows)
         old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
-        assert match_sites({"1": rows, "2": rows2}, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=True) == []
+        assert match_sites(self.rows, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=True) == []
 
     def test_rows_marked_unchanged_if_exclude_unchanged_false(self):
         """If exclude_unchanged == False, and all rows are old, return them with "Old Row": "Unchanged"."""
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
-        output = match_sites({"1": rows, "2": rows2})
+        output = match_sites(self.rows)
         old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
-        new_output = match_sites({"1": rows, "2": rows2}, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=False)
+        new_output = match_sites(self.rows, old_item_ids_to_rows=old_item_ids_to_rows, exclude_unchanged=False)
         for row in new_output:
             assert  row["Old Row"] == "Unchanged"
 
     def test_if_some_old_and_some_new_old_row_should_be_yes_or_no(self):
         """If some rows are old and some new, and exclude_unchanged == True, all rows should have "Old Row": "Yes" or "No" but not "Unchanged"."""
-        rows = [{"Stock & Site": "1", "Stock Code": "A", "Stock Description": "Thing"}]
-        rows2 = [{"Stock & Site": "2", "Stock Code": "B", "Stock Description": "Some"}]
-        output = match_sites({"1": rows, "2": rows2})
+        output = match_sites(self.rows)
         old_item_ids_to_rows = {output[0]["Stock & Site"]: [output[0]], output[1]["Stock & Site"]: [output[1]]}
-        rows2.append({"Stock & Site": "3", "Stock Code": "C", "Stock Description": "Else"})
-        new_output = match_sites({"1": rows, "2": rows2} , old_item_ids_to_rows=old_item_ids_to_rows)
+        new_rows = self.rows+[{"Site": "2", "Stock & Site": "3", "Stock Code": "C", "Description": "Else"}]
+        new_output = match_sites(new_rows, old_rows=output, old_item_ids_to_rows=old_item_ids_to_rows)
         assert any([row["Old Row"] == "Yes" for row in new_output])
         assert any([row["Old Row"] == "No" for row in new_output])
         for row in new_output:
