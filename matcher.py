@@ -18,7 +18,7 @@ def preprocess(string, abbrevs = []):
     string = " ".join(string.split())
     #Expand any abbreviations we may have
     for abbrev in abbrevs:
-        string = string.replace(abbrev["Abbreviation"], abbrev["Expanded"])
+        string = string.replace(abbrev["Abbreviation"].lower(), abbrev["Expanded"].lower())
     return set(string.split(" "))
 
 def to_base_word_set(word_string, abbrevs = []):
