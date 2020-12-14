@@ -63,9 +63,9 @@ def preprocess_all(site_rows, abbrevs=[]):
         if row["Site"] != site:
             site = row["Site"]
             desc_to_preprocessed = {}
-        desc = row["Stock Description"].strip()
+        desc = row["Description"].strip()
         if desc not in desc_to_preprocessed:
-            relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "Stock Code": row["Stock Code"], "Stock & Site": {row["Stock & Site"]}}
+            relevant_data = {"Preprocessed": preprocess(desc, abbrevs), "Stock & Site": {row["Stock & Site"]}}
             desc_to_preprocessed[desc] = relevant_data
         else:
             desc_to_preprocessed[desc]["Stock & Site"].add(row["Stock & Site"])
@@ -86,7 +86,7 @@ def generate_jobs(site_rows, site_to_descs_preprocessed, abbrevs=[]):
     jobs = {}
     for row in site_rows:
         row_jobs = {}
-        desc = row["Stock Description"]
+        desc = row["Description"]
         desc = desc.strip()
         preprocessed = preprocess(desc, abbrevs)
         for site in site_to_descs_preprocessed:
@@ -261,12 +261,12 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites(site_rows, old_site_rows={}, old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True):
+def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True):
     """Match rows to rows.
 
     Arguments:
-    site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
-    old_site_rows -- A dictionary mapping sites to lists of rows represented by dictionaries
+    site_rows -- A list of rows represented by dictionaries
+    old_rows -- A list of rows represented by dictionaries
     old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
     desc_matches -- A dict of dicts of dicts mapping item_ids to sites to matches.
     exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
@@ -274,11 +274,9 @@ def match_sites(site_rows, old_site_rows={}, old_item_ids_to_rows={}, desc_match
     Returns:
     A list of dictionaries representing rows with matches.
     """
-    rows = base_rows_from(site_rows)
-    old_rows = base_rows_from(old_site_rows)
-    rows = rows + old_rows
+    rows = site_rows + old_rows
     if not desc_matches:
-        desc_matches = match_by_description(site_rows, old_site_rows)
+        desc_matches = match_by_description(site_rows, old_rows)
     final_rows = []
     for row in rows:
         row = copy.deepcopy(row)
@@ -364,7 +362,7 @@ def match_sites_dataframe(dataframe, matches_json=""):
         old_rows = []
     #print(ndf.head(n=10))
     #print(odf.head(n=10))
-    site_rows = generate_site_to_rows_dict(new_rows)
+    site_rows = base_rows_from(generate_site_to_rows_dict(new_rows))
     old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
@@ -400,7 +398,6 @@ def generate_site_to_rows_dict(rows, old=False):
         new_rows = []
         for row in rows:
             row = copy.deepcopy(row)
-            row["Stock Description"] = row["Description"]
             item_id = row["Stock & Site"]
             if item_id not in item_ids:
                 item_ids.append(item_id)
