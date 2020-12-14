@@ -362,8 +362,8 @@ def match_sites_dataframe(dataframe, matches_json=""):
         old_rows = []
     #print(ndf.head(n=10))
     #print(odf.head(n=10))
-    site_rows = base_rows_from(generate_site_to_rows_dict(new_rows))
-    old_site_rows = generate_site_to_rows_dict(old_rows, old=True)
+    site_rows = base_rows_from(new_rows)
+    old_site_rows = remove_duplicate_rows(old_rows)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
     #print('from match_sites_dataframe')
 
@@ -383,27 +383,24 @@ def match_sites_dataframe(dataframe, matches_json=""):
     matches_df = matches_df[OUTPUT_FIELDNAMES]
     return matches_df
 
-def generate_site_to_rows_dict(rows, old=False):
-    """Generates site to rows dictionary.
+def remove_duplicate_rows(rows):
+    """Remove rows with duplicate "Stock & Site"
 
     Arguments:
     rows -- A list of dictionaries representing rows
-    old (bool) -- If True, change key "Description" to "Stock Description" and remove rows with duplicate "Stock & Site"
 
     Returns:
-    A list of rows
+    A list of rows with duplicate 'Stock & Site' rows removed
     """
-    if old:
-        item_ids = []
-        new_rows = []
-        for row in rows:
-            row = copy.deepcopy(row)
-            item_id = row["Stock & Site"]
-            if item_id not in item_ids:
-                item_ids.append(item_id)
-                new_rows.append(row)
-        rows = new_rows
-    return rows
+    item_ids = []
+    new_rows = []
+    for row in rows:
+        row = copy.deepcopy(row)
+        item_id = row["Stock & Site"]
+        if item_id not in item_ids:
+            item_ids.append(item_id)
+            new_rows.append(row)
+    return new_rows
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="Script to match similar rows in data from different sites.")
