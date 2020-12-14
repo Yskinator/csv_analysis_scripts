@@ -18,17 +18,6 @@ INPUT_FIELDNAMES = ["Site", "Stock Code", "Stock & Site", "Stock Description"]
 
 ALL_FIELDNAMES = list(set(INPUT_FIELDNAMES) | set(OUTPUT_FIELDNAMES))
 
-def base_rows_from(rows):
-    """Take a list of rows and add key 'Description' with values from row['Stock Description'].
-
-    Arguments:
-    rows -- A list of dictionaries representing rows
-
-    Returns:
-    A list of dictionaries representing all rows in site_rows in the format {"Site": ..., "Stock & Site": ..., "Stock Code": ..., "Description": ...}
-    """
-    return [{**row, "Description": row["Stock Description"]} for row in rows]
-
 def generate_item_ids_to_rows(rows):
     """Take a list of rows and return a dictionary mapping each site to a list of rows for that site.
 
@@ -352,7 +341,8 @@ def match_sites_dataframe(dataframe, matches_json=""):
     else:
         new_rows = dataframe.to_dict("records")
         old_rows = []
-    site_rows = base_rows_from(new_rows)
+    # Add a 'Description' field to new_rows
+    site_rows = [{**row, "Description": row["Stock Description"]} for row in new_rows]
     old_site_rows = remove_duplicate_rows(old_rows)
     old_item_ids_to_rows = generate_item_ids_to_rows(old_rows)
 
