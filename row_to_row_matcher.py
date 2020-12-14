@@ -248,7 +248,7 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True):
+def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True, top_n=10):
     """Match rows to rows.
 
     Arguments:
@@ -257,6 +257,7 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
     old_item_ids_to_rows -- A dictionary mapping item ids ("Stock & Site") to rows
     desc_matches -- A dict of dicts of dicts mapping item_ids to sites to matches.
     exclude_unchanged (bool) -- If true, do not return rows which have not changed relative to old_site_rows
+    top_n (int) -- Maximum amount of matches to return for each item
 
     Returns:
     A list of dictionaries representing rows with matches.
@@ -286,7 +287,7 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
                     continue
                 row_base["Old Row"] = "Unchanged"
             else:
-                matches = top_n_matches(matches, old_matches, 10)
+                matches = top_n_matches(matches, old_matches, top_n)
                 for old_row in old_rows:
                     old_row["Old Row"] = "Yes"
                     final_rows.append(old_row)
@@ -300,7 +301,7 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
 
     return final_rows
 
-def match_sites_dataframe(dataframe, matches_json=""):
+def match_sites_dataframe(dataframe, matches_json="", top_n=10):
     '''
     Generates a dataframe of matched sites.
     matches_json is an optional parameter for saving and loading slow to generate
@@ -308,6 +309,7 @@ def match_sites_dataframe(dataframe, matches_json=""):
     INPUTS:
      - dataframe
      - matches_json -- A string representing the filename of a json file containing old matches to speed up processing
+     - top_n (int) -- Maximum amount of matches to return for each item
     OUTPUTS:
      - matches_df
     '''
@@ -355,7 +357,7 @@ def match_sites_dataframe(dataframe, matches_json=""):
             desc_matches = match_by_description(site_rows, old_site_rows)
             file_utils.save_json(matches_json, desc_matches)
 
-    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches)
+    matches_rows = match_sites(site_rows, old_site_rows, old_item_ids_to_rows, desc_matches, top_n=top_n)
     matches_df = pandas.DataFrame(matches_rows, columns=OUTPUT_FIELDNAMES)
     matches_df = matches_df.fillna(value="")
     matches_df = matches_df[OUTPUT_FIELDNAMES]
@@ -385,6 +387,7 @@ if __name__=="__main__":
     parser.add_argument("filename", help="Filename of the csv file to process.")
     parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form. If output file already exists, the new results are combined to the already existing ones.")
     parser.add_argument("-d", "--match_data", help="Filename of json with old matches. If file already exists, read it. If file does not exist, create one based on the results of this run. Generating the description matches in match_data is by far the slowest part, so it is recommended to save it when expecting re-use.")
+    parser.add_argument("-m", "--matches", help="Maximum amount of matches to return for each row. Default value is 10.", type=int, default=10)
 
     args = parser.parse_args()
 
@@ -393,6 +396,7 @@ if __name__=="__main__":
     matches_json = args.match_data
     if not matches_json:
         matches_json = ""
+    top_n = args.matches
 
     stime = time.time()
 
@@ -409,12 +413,12 @@ if __name__=="__main__":
     df = pandas.concat([ndf, odf]).reset_index(drop=True)
 
     if output_file:
-        matches_df = match_sites_dataframe(df, matches_json=matches_json)
+        matches_df = match_sites_dataframe(df, matches_json=matches_json, top_n=top_n)
         matches_df = matches_df.sort_values(by=["Stock & Site", "Match Stock & Site"])
         result_rows = matches_df.to_dict("records")
         file_utils.save_csv(output_file, result_rows, fieldnames=OUTPUT_FIELDNAMES)
     else:
-        matches_df = match_sites_dataframe(df)
+        matches_df = match_sites_dataframe(df, top_n=top_n)
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(matches_df.head(n=10))
 
