@@ -12,6 +12,8 @@ def folder_exists(foldername):
     return os.path.isdir(foldername)
 
 def file_exists(filename):
+    if not filename:
+        return False
     filename = add_path(filename)
     return os.path.isfile(filename)
 
