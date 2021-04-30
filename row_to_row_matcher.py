@@ -75,7 +75,7 @@ def generate_jobs(site_rows, site_to_descs_preprocessed):
                 if site in result_cache[preprocessed]:
                     row_jobs[site] = copy.deepcopy(result_cache[preprocessed][site])
                 else:
-                    row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
+                    row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 5, words_to_exclude=set())
                     result_cache[preprocessed][site] = copy.deepcopy(row_jobs[site])
             jobs[row["Stock & Site"]] = row_jobs
     return jobs
@@ -97,8 +97,8 @@ def match_by_description(site_rows, old_site_rows):
     nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
     no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
     on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
-    desc_matches = combine_desc_matches(nn_desc_matches, no_desc_matches, 10)
-    desc_matches = combine_desc_matches(desc_matches, on_desc_matches, 10)
+    desc_matches = combine_desc_matches(nn_desc_matches, no_desc_matches, 5)
+    desc_matches = combine_desc_matches(desc_matches, on_desc_matches, 5)
     return desc_matches
 
 def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
@@ -231,7 +231,7 @@ def match_sites(site_rows, old_site_rows = {}, old_item_ids_to_rows = {}, matche
                     if matches == old_matches:
                         row_base["Old Row"] = "Unchanged"
                     else:
-                        matches = top_n_matches(matches, old_matches, 10)
+                        matches = top_n_matches(matches, old_matches, 5)
                         for old_row in old_rows:
                             old_row["Old Row"] = "Yes"
                             final_rows.append(old_row)
