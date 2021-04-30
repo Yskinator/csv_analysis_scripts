@@ -62,14 +62,21 @@ def get_abbrevs():
 def generate_jobs(site_rows, site_to_descs_preprocessed):
     jobs = {}
     abbrevs = get_abbrevs()
+    result_cache = {}
     for home, rows in site_rows.items():
         for row in rows:
             row_jobs = {}
             desc = row["Stock Description"]
             desc = desc.strip()
-            preprocessed = preprocess(desc, abbrevs)
+            preprocessed = frozenset(preprocess(desc, abbrevs))
+            if preprocessed not in result_cache:
+                result_cache[preprocessed] = {}
             for site in site_to_descs_preprocessed:
-                row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
+                if site in result_cache[preprocessed]:
+                    row_jobs[site] = copy.deepcopy(result_cache[preprocessed][site])
+                else:
+                    row_jobs[site] = most_matching_words(preprocessed, site_to_descs_preprocessed[site], 10, words_to_exclude=set())
+                    result_cache[preprocessed][site] = copy.deepcopy(row_jobs[site])
             jobs[row["Stock & Site"]] = row_jobs
     return jobs
 
