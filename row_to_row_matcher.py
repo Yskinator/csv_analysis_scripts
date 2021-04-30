@@ -118,8 +118,8 @@ def match_by_description(site_rows, old_site_rows):
     nn_desc_matches = jobs_to_desc_matches(jobs_new_to_new, all_site_to_descs_preprocessed)
     no_desc_matches = jobs_to_desc_matches(jobs_new_to_old, all_site_to_descs_preprocessed)
     on_desc_matches = jobs_to_desc_matches(jobs_old_to_new, all_site_to_descs_preprocessed)
-    desc_matches = combine_desc_matches(nn_desc_matches, no_desc_matches, 5)
-    desc_matches = combine_desc_matches(desc_matches, on_desc_matches, 5)
+    desc_matches = combine_desc_matches(nn_desc_matches, no_desc_matches, 10)
+    desc_matches = combine_desc_matches(desc_matches, on_desc_matches, 10)
     return desc_matches
 
 def jobs_to_desc_matches(jobs, all_site_to_descs_preprocessed):
@@ -255,7 +255,7 @@ def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
                 results.append(row)
     return results
 
-def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True, top_n=5):
+def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}, exclude_unchanged=True, top_n=10):
     """Match rows to rows.
 
     Arguments:
@@ -308,7 +308,7 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
 
     return final_rows
 
-def match_sites_dataframe(dataframe, matches_json="", top_n=10):
+def match_sites_dataframe(dataframe, matches_json="", top_n=5):
     '''
     Generates a dataframe of matched sites.
     matches_json is an optional parameter for saving and loading slow to generate
@@ -394,7 +394,7 @@ if __name__=="__main__":
     parser.add_argument("filename", help="Filename of the csv file to process.")
     parser.add_argument("-o", "--output", help="Save output to file with the given filename. If argument is not present, the output is instead printed to console in an abbreviated form. If output file already exists, the new results are combined to the already existing ones.")
     parser.add_argument("-d", "--match_data", help="Filename of json with old matches. If file already exists, read it. If file does not exist, create one based on the results of this run. Generating the description matches in match_data is by far the slowest part, so it is recommended to save it when expecting re-use.")
-    parser.add_argument("-m", "--matches", help="Maximum amount of matches to return for each row. Default value is 10.", type=int, default=10)
+    parser.add_argument("-m", "--matches", help="Maximum amount of matches to return for each row. Default value is 5.", type=int, default=5)
 
     args = parser.parse_args()
 
