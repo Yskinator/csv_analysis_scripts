@@ -311,8 +311,6 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
             mrows = matches_to_rows(matches)
             for i, mrow in enumerate(mrows):
                 new_row = {**row_base, "Match Description": mrow["Match Description"], "Match Stock & Site": mrow["Match Stock & Site"], "Match Score": str(mrow["Match Score"]), "Match Number": str(i), "Matching Row Count": str(len(mrows))}
-                #Prevent duplicate rows. TODO: Figure out how this happens.
-                #if not new_row in final_rows:
                 final_rows.append(new_row)
 
     return final_rows
