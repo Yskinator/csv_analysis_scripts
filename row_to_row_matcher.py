@@ -237,6 +237,23 @@ def rows_to_matches(rows):
         matches["Stock & Site"][-1].add(row["Match Stock & Site"])
     return matches
 
+def matches_to_rows(matches):
+    """Convert matches back to a row-like format.
+
+    Arguments:
+    matches -- dictionary mapping "Matches", "Scores" and "Stock & Site" to lists of rows
+
+    Returns:
+    A list of dictionaries representing rows
+    """
+    if "Matches" not in matches or not matches["Matches"]:
+        return []
+    rows = []
+    for i in range(len(matches["Matches"])):
+        # Should be something like (i+1)%10 to be correct but this function is only temporary anyway
+        rows.append({"Match Description": matches["Matches"][i], "Match Score": matches["Scores"][i], "Match Stock & Site": copy.deepcopy(matches["Stock & Site"][i]).pop(), "Match Number": i+1})
+    return rows
+
 def find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, match_site):
     """Given a dictionary mapping ids to lists of rows, find all rows with the given id and Match Site and return them in a list.
 
@@ -276,10 +293,9 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
     for row in rows:
         row = copy.deepcopy(row)
         item_id = str(row["Stock & Site"])
-        all_sites = set()
-        if item_id in desc_matches:
-            all_sites = set(desc_matches[item_id])
-        for site in all_sites:
+        if item_id not in desc_matches:
+            continue
+        for site in desc_matches[item_id]:
             if site == row["Site"]:
                 continue
             old_rows = find_rows_with_id_and_match_site(old_item_ids_to_rows, item_id, site)
@@ -299,12 +315,10 @@ def match_sites(site_rows, old_rows=[], old_item_ids_to_rows={}, desc_matches={}
                     old_row["Old Row"] = "Yes"
                     final_rows.append(old_row)
                 row_base["Old Row"] = "No"
-            for i, (match, score, desc_match_rows) in enumerate(zip(matches["Matches"], matches["Scores"], matches["Stock & Site"])):
-                for match_row in desc_match_rows:
-                    new_row = {**row_base, "Match Description": match, "Match Stock & Site": match_row, "Match Score": str(score), "Match Number": str(i), "Matching Row Count": str(len(desc_match_rows))}
-                    #Prevent duplicate rows. TODO: Figure out how this happens.
-                    #if not new_row in final_rows:
-                    final_rows.append(new_row)
+            mrows = matches_to_rows(matches)
+            for i, mrow in enumerate(mrows):
+                new_row = {**row_base, "Match Description": mrow["Match Description"], "Match Stock & Site": mrow["Match Stock & Site"], "Match Score": str(mrow["Match Score"]), "Match Number": str(i), "Matching Row Count": str(len(mrows))}
+                final_rows.append(new_row)
 
     return final_rows
 
